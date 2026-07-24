@@ -1,0 +1,1596 @@
+:root {
+    --opow-blue: #082f57;
+    --opow-blue-2: #0b3d70;
+    --opow-green: #12a86b;
+    --opow-green-2: #0f8f5d;
+    --opow-white: #ffffff;
+    --opow-bg: #f4f8fb;
+    --opow-text: #172033;
+    --opow-muted: #64748b;
+    --opow-border: rgba(8, 47, 87, 0.14);
+    --opow-shadow: 0 18px 45px rgba(8, 47, 87, 0.15);
+    --opow-shadow-lg: 0 30px 75px rgba(8, 47, 87, 0.28);
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: "Cairo", sans-serif;
+    background: var(--opow-bg);
+    color: var(--opow-text);
+    overflow-x: hidden;
+}
+
+a {
+    text-decoration: none;
+}
+
+.btn {
+    border-radius: 14px !important;
+    font-weight: 800 !important;
+    padding: 12px 18px !important;
+}
+
+.btn-opow-primary {
+    background: linear-gradient(135deg, var(--opow-blue), var(--opow-blue-2));
+    color: #fff;
+    border: none;
+    box-shadow: 0 12px 26px rgba(8, 47, 87, 0.22);
+}
+
+.btn-opow-primary:hover {
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.btn-opow-green {
+    background: linear-gradient(135deg, var(--opow-green), var(--opow-green-2));
+    color: #fff;
+    border: none;
+    box-shadow: 0 12px 26px rgba(18, 168, 107, 0.24);
+}
+
+.btn-opow-green:hover {
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+/* ================= HERO SLIDER ================= */
+
+.opow-hero-slider {
+    position: relative;
+    min-height: 720px;
+    overflow: hidden;
+    color: #fff;
+    background: var(--opow-blue);
+}
+
+.opow-slide-track {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    width: 400%;
+    height: 100%;
+    animation: slideLeft 8s infinite ease-in-out;
+}
+
+.opow-slide {
+    width: 25%;
+    min-width: 25%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.opow-slide::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(8,47,87,0.92), rgba(8,47,87,0.70), rgba(8,47,87,0.40)),
+        linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.45));
+}
+
+@keyframes slideLeft {
+    0%, 20% {
+        transform: translateX(0);
+    }
+
+    25%, 45% {
+        transform: translateX(25%);
+    }
+
+    50%, 70% {
+        transform: translateX(50%);
+    }
+
+    75%, 95% {
+        transform: translateX(75%);
+    }
+
+    100% {
+        transform: translateX(0);
+    }
+}
+
+/* ================= HERO OVERLAY CONTENT ================= */
+
+.opow-hero-content {
+    position: relative;
+    z-index: 5;
+    min-height: 720px;
+    display: flex;
+    align-items: center;
+    padding: 32px 0 70px;
+}
+
+.opow-topbar {
+    position: absolute;
+    top: 24px;
+    right: 50%;
+    transform: translateX(50%);
+    z-index: 10;
+    width: min(1120px, calc(100% - 24px));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 22px;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.18);
+    backdrop-filter: blur(12px);
+}
+
+.opow-topbar-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    border-radius: 999px;
+    color: #fff;
+    font-weight: 800;
+    background: rgba(255,255,255,0.09);
+    border: 1px solid rgba(255,255,255,0.14);
+    transition: 0.25s ease;
+}
+
+.opow-topbar-link:hover {
+    background: #fff;
+    color: var(--opow-blue);
+}
+
+.opow-ticket-link {
+    background: linear-gradient(135deg, var(--opow-green), var(--opow-green-2));
+    border: none;
+}
+
+.opow-official-block {
+    max-width: 820px;
+    padding-top: 76px;
+}
+
+.opow-official-small {
+    color: rgba(255,255,255,0.94);
+    font-weight: 500;
+    line-height: 1.5;
+    margin-bottom: 18px;
+    text-shadow: 0 4px 14px rgba(0,0,0,0.35);
+}
+
+.opow-main-title {
+    font-size: clamp(2rem, 4.5vw, 3.7rem);
+    font-weight: 900;
+    line-height: 1.45;
+    color: #fff;
+    margin-bottom: 20px;
+    text-shadow: 0 6px 24px rgba(0,0,0,0.38);
+}
+
+.opow-main-title span {
+    display: inline-block;
+    color: #fff;
+}
+
+.opow-subtitle {
+    max-width: 760px;
+    color: rgba(255,255,255,0.92);
+    font-size: 1.13rem;
+    line-height: 2.1;
+    font-weight: 700;
+    text-shadow: 0 4px 16px rgba(0,0,0,0.32);
+}
+
+.opow-hero-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 26px;
+}
+
+.opow-hero-actions a {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    border-radius: 16px;
+    padding: 13px 20px;
+    font-weight: 900;
+    transition: 0.25s ease;
+}
+
+.opow-hero-actions a:hover {
+    transform: translateY(-3px);
+}
+
+.opow-action-green {
+    background: linear-gradient(135deg, var(--opow-green), var(--opow-green-2));
+    color: #fff;
+    box-shadow: 0 14px 32px rgba(18,168,107,0.28);
+}
+
+.opow-action-outline {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.22);
+    backdrop-filter: blur(10px);
+}
+
+/* ================= HERO CARD ================= */
+
+.opow-identity-card {
+    background: rgba(255,255,255,0.94);
+    color: var(--opow-text);
+    border-radius: 34px;
+    padding: 32px 26px;
+    border: 1px solid rgba(255,255,255,0.8);
+    box-shadow: var(--opow-shadow-lg);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(14px);
+}
+
+.opow-identity-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 7px;
+    background: linear-gradient(90deg, var(--opow-blue), var(--opow-green));
+}
+
+.opow-logo-box {
+    width: 108px;
+    height: 108px;
+    margin: 0 auto 18px;
+    border-radius: 28px;
+    background: #fff;
+    border: 1px solid var(--opow-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 14px 30px rgba(8,47,87,0.14);
+}
+
+.opow-logo-box img {
+    width: 82px;
+    height: 82px;
+    object-fit: contain;
+}
+
+.opow-identity-card h5 {
+    color: var(--opow-blue);
+    font-weight: 900;
+}
+
+.opow-identity-card p {
+    color: var(--opow-muted);
+    line-height: 1.8;
+}
+
+.opow-feature-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 14px;
+    margin-top: 10px;
+    border-radius: 16px;
+    background: #eef5f8;
+    border: 1px solid var(--opow-border);
+    color: var(--opow-blue);
+    font-weight: 800;
+}
+
+.opow-feature-pill i {
+    color: var(--opow-green);
+}
+
+/* ================= ACTIVITY CARDS LIKE IMAGE ================= */
+
+.opow-activity-cards-zone {
+    position: relative;
+    z-index: 6;
+    margin-top: -80px;
+    padding-bottom: 50px;
+}
+
+.opow-activity-card {
+    background: #fff;
+    border-radius: 22px;
+    border: 1px solid var(--opow-border);
+    overflow: hidden;
+    box-shadow: var(--opow-shadow);
+    height: 100%;
+    transition: 0.28s ease;
+}
+
+.opow-activity-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--opow-shadow-lg);
+}
+
+.opow-activity-img {
+    height: 190px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.opow-activity-img::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(8,47,87,0.05), rgba(8,47,87,0.48));
+}
+
+.opow-activity-body {
+    text-align: center;
+    padding: 22px 18px 24px;
+}
+
+.opow-activity-body h5 {
+    color: var(--opow-blue);
+    font-weight: 900;
+    margin-bottom: 10px;
+}
+
+.opow-activity-body p {
+    color: var(--opow-muted);
+    line-height: 1.8;
+    font-size: 0.94rem;
+}
+
+.opow-activity-body .btn {
+    margin-top: 8px;
+}
+
+/* ================= NEWS TICKER ================= */
+
+.opow-news-ticker {
+    background: #fff;
+    border: 1px solid var(--opow-border);
+    border-radius: 20px;
+    box-shadow: var(--opow-shadow);
+    overflow: hidden;
+    margin: 24px auto 0;
+}
+
+.opow-news-label {
+    background: linear-gradient(135deg, var(--opow-blue), var(--opow-blue-2));
+    color: #fff;
+    font-weight: 900;
+    padding: 14px 18px;
+    display: inline-flex;
+    min-width: 150px;
+    justify-content: center;
+}
+
+.opow-news-content {
+    display: inline-block;
+    padding: 14px 18px;
+    color: var(--opow-blue);
+    font-weight: 800;
+}
+
+/* ================= SECTIONS ================= */
+
+.opow-section {
+    padding: 78px 0;
+}
+
+.opow-section-title {
+    text-align: center;
+    color: var(--opow-blue);
+    font-weight: 900;
+    font-size: clamp(1.7rem, 3vw, 2.15rem);
+    margin-bottom: 42px;
+    position: relative;
+}
+
+.opow-section-title::after {
+    content: "";
+    width: 90px;
+    height: 5px;
+    border-radius: 999px;
+    display: block;
+    margin: 14px auto 0;
+    background: linear-gradient(90deg, var(--opow-blue), var(--opow-green));
+}
+
+.opow-card {
+    background: #fff;
+    border: 1px solid var(--opow-border);
+    border-radius: 26px;
+    box-shadow: var(--opow-shadow);
+    padding: 24px;
+    text-align: center;
+    height: 100%;
+    transition: 0.28s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.opow-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--opow-blue), var(--opow-green));
+}
+
+.opow-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--opow-shadow-lg);
+}
+
+.opow-media-img {
+    width: 124px;
+    height: 124px;
+    border-radius: 26px;
+    object-fit: cover;
+    margin-bottom: 16px;
+    border: 4px solid #fff;
+    box-shadow: 0 14px 28px rgba(8,47,87,0.15);
+}
+
+.opow-card h6,
+.opow-card h5 {
+    color: var(--opow-blue);
+    font-weight: 900;
+    line-height: 1.7;
+}
+
+.opow-card p {
+    color: var(--opow-muted);
+    line-height: 1.8;
+}
+
+/* ================= MODAL ================= */
+
+#complexModal .modal-content {
+    border: none;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: var(--opow-shadow-lg);
+}
+
+#complexModal .modal-header {
+    background: linear-gradient(135deg, var(--opow-blue), var(--opow-blue-2)) !important;
+    color: #fff;
+    border: none;
+}
+
+#complexModal .modal-title {
+    font-weight: 900;
+}
+
+/* ================= FOOTER ================= */
+
+.opow-footer {
+    background:
+        radial-gradient(circle at top right, rgba(18,168,107,0.18), transparent 22%),
+        linear-gradient(135deg, #061f3b 0%, #071a30 100%);
+    color: #fff;
+    padding: 72px 0 28px;
+    margin-top: 70px;
+}
+
+.opow-footer h5 {
+    font-weight: 900;
+    margin-bottom: 16px;
+}
+
+.opow-footer p,
+.opow-footer a {
+    color: rgba(255,255,255,0.84);
+}
+
+.opow-footer a:hover {
+    color: #fff;
+}
+
+.opow-footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.opow-footer-links li {
+    margin-bottom: 9px;
+}
+
+.opow-social {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.opow-social a {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.14);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.opow-social a:hover {
+    background: var(--opow-green);
+}
+
+.opow-footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.12);
+    padding-top: 18px;
+    color: rgba(255,255,255,0.70);
+    font-weight: 700;
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 991px) {
+    .opow-hero-slider {
+        min-height: auto;
+    }
+
+    .opow-hero-content {
+        min-height: auto;
+        padding: 130px 0 120px;
+    }
+
+    .opow-topbar {
+        top: 14px;
+        flex-wrap: wrap;
+    }
+
+    .opow-official-block {
+        text-align: center;
+        margin: auto;
+        padding-top: 20px;
+    }
+
+    .opow-hero-actions {
+        justify-content: center;
+    }
+
+    .opow-identity-card {
+        margin-top: 26px;
+    }
+
+    .opow-activity-cards-zone {
+        margin-top: -55px;
+    }
+}
+
+@media (max-width: 767px) {
+    .opow-topbar-link {
+        width: calc(50% - 6px);
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+
+    .opow-main-title {
+        font-size: 1.9rem;
+    }
+
+    .opow-subtitle {
+        font-size: 1rem;
+    }
+
+    .opow-hero-actions a {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 575px) {
+    .opow-topbar-link {
+        width: 100%;
+    }
+
+    .opow-hero-content {
+        padding-top: 300px;
+    }
+
+    .opow-identity-card {
+        border-radius: 24px;
+    }
+
+    .opow-news-label,
+    .opow-news-content {
+        display: block;
+        width: 100%;
+        text-align: center;
+    }
+}
+/* =====================================================
+   FIX HERO WHITE CARD - OFFICIAL TEXT INSIDE CARD
+===================================================== */
+
+/* البطاقة البيضاء الرئيسية */
+.opow-identity-card {
+    max-width: 540px;
+    margin-inline: auto;
+    background: rgba(255, 255, 255, 0.96) !important;
+    border-radius: 30px !important;
+    padding: 30px 28px !important;
+    border: 1px solid rgba(8, 47, 87, 0.12) !important;
+    box-shadow: 0 24px 60px rgba(8, 47, 87, 0.26) !important;
+    backdrop-filter: blur(14px);
+    color: #082f57 !important;
+    overflow: hidden;
+}
+
+/* الخط العلوي داخل البطاقة */
+.opow-identity-card::before {
+    height: 6px !important;
+    background: linear-gradient(90deg, #082f57, #12a86b) !important;
+}
+
+/* اللوقو */
+.opow-logo-box {
+    width: 92px !important;
+    height: 92px !important;
+    margin: 0 auto 16px !important;
+    border-radius: 24px !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(8, 47, 87, 0.12) !important;
+    box-shadow: 0 12px 28px rgba(8, 47, 87, 0.14) !important;
+}
+
+.opow-logo-box img {
+    width: 68px !important;
+    height: 68px !important;
+    object-fit: contain;
+}
+
+/* اسم OPOW */
+.opow-identity-card h5 {
+    color: #082f57 !important;
+    font-size: 1.05rem !important;
+    font-weight: 900 !important;
+    margin-bottom: 8px !important;
+    text-shadow: none !important;
+}
+
+/* النص الفرنسي */
+.opow-identity-card > p {
+    color: #64748b !important;
+    font-size: 0.86rem !important;
+    font-weight: 700 !important;
+    line-height: 1.6 !important;
+    margin-bottom: 14px !important;
+    text-shadow: none !important;
+}
+
+/* صندوق النصوص الرسمية */
+.opow-official-text-card {
+    margin: 10px 0 16px !important;
+    padding: 14px 12px !important;
+    border-radius: 18px !important;
+    background: #f3f8fb !important;
+    border: 1px solid rgba(8, 47, 87, 0.10) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+/* الجمهورية */
+.opow-republic {
+    color: #082f57 !important;
+    font-size: 0.82rem !important;
+    font-weight: 900 !important;
+    line-height: 1.7 !important;
+    margin-bottom: 2px !important;
+    text-shadow: none !important;
+}
+
+/* الوزارة */
+.opow-ministry {
+    color: #0b3d70 !important;
+    font-size: 0.78rem !important;
+    font-weight: 800 !important;
+    line-height: 1.6 !important;
+    margin-bottom: 2px !important;
+    text-shadow: none !important;
+}
+
+/* الأمازيغية */
+.opow-amazigh {
+    color: #64748b !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    line-height: 1.5 !important;
+    margin-bottom: 10px !important;
+    direction: ltr;
+    text-shadow: none !important;
+}
+
+/* اسم الديوان بالعربية */
+.opow-office-ar {
+    color: #082f57 !important;
+    font-size: 1.2rem !important;
+    font-weight: 900 !important;
+    line-height: 1.7 !important;
+    margin-top: 8px !important;
+    margin-bottom: 6px !important;
+    text-shadow: none !important;
+}
+
+/* اسم الديوان بالفرنسية */
+.opow-office-fr {
+    color: #64748b !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    line-height: 1.6 !important;
+    margin-bottom: 8px !important;
+    text-shadow: none !important;
+}
+
+/* وصف المنصة */
+.opow-platform-desc {
+    color: #172033 !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    line-height: 1.9 !important;
+    margin: 10px auto 0 !important;
+    max-width: 440px;
+    text-shadow: none !important;
+}
+
+/* حذف تأثير النص الكبير الأبيض إذا بقي مطبقًا */
+.opow-main-title,
+.opow-main-title span,
+.opow-subtitle,
+.opow-official-small,
+.opow-official-small div {
+    text-shadow: none !important;
+}
+
+/* إخفاء العنوان الكبير خارج البطاقة */
+.opow-official-block {
+    display: none !important;
+}
+
+/* مميزات البطاقة */
+.opow-feature-pill {
+    background: #eef5f8 !important;
+    border: 1px solid rgba(8, 47, 87, 0.12) !important;
+    color: #082f57 !important;
+    border-radius: 16px !important;
+    min-height: 48px !important;
+    padding: 12px 14px !important;
+    font-size: 0.86rem !important;
+    font-weight: 800 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+.opow-feature-pill i {
+    color: #12a86b !important;
+    font-size: 1rem !important;
+}
+
+/* تحسين البطاقة في الهاتف */
+@media (max-width: 991px) {
+    .opow-identity-card {
+        max-width: 92%;
+        padding: 26px 20px !important;
+        border-radius: 26px !important;
+    }
+
+    .opow-office-ar {
+        font-size: 1.08rem !important;
+    }
+
+    .opow-platform-desc {
+        font-size: 0.78rem !important;
+    }
+}
+
+@media (max-width: 575px) {
+    .opow-identity-card {
+        max-width: 96%;
+        padding: 22px 16px !important;
+        border-radius: 22px !important;
+    }
+
+    .opow-logo-box {
+        width: 80px !important;
+        height: 80px !important;
+    }
+
+    .opow-logo-box img {
+        width: 58px !important;
+        height: 58px !important;
+    }
+
+    .opow-identity-card h5 {
+        font-size: 0.96rem !important;
+    }
+
+    .opow-republic {
+        font-size: 0.76rem !important;
+    }
+
+    .opow-ministry {
+        font-size: 0.72rem !important;
+    }
+
+    .opow-amazigh {
+        font-size: 0.68rem !important;
+    }
+
+    .opow-office-ar {
+        font-size: 0.98rem !important;
+    }
+
+    .opow-office-fr {
+        font-size: 0.72rem !important;
+    }
+
+    .opow-platform-desc {
+        font-size: 0.74rem !important;
+        line-height: 1.8 !important;
+    }
+}
+/* =====================================================
+   PLATFORM STATISTICS ZONE
+===================================================== */
+
+.opow-stats-zone {
+    position: relative;
+    z-index: 8;
+    margin-top: -35px;
+    padding-bottom: 30px;
+}
+
+.opow-stats-panel {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(8, 47, 87, 0.12);
+    border-radius: 30px;
+    box-shadow: 0 24px 60px rgba(8, 47, 87, 0.16);
+    padding: 26px;
+    backdrop-filter: blur(14px);
+    overflow: hidden;
+    position: relative;
+}
+
+.opow-stats-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
+    background: linear-gradient(90deg, #082f57, #12a86b);
+}
+
+.opow-stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+}
+
+.opow-stats-header h2 {
+    color: #082f57;
+    font-size: 1.45rem;
+    font-weight: 900;
+    margin: 0 0 6px;
+}
+
+.opow-stats-header p {
+    color: #64748b;
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.opow-stats-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #eef5f8;
+    color: #082f57;
+    border: 1px solid rgba(8, 47, 87, 0.12);
+    border-radius: 999px;
+    padding: 10px 15px;
+    font-weight: 900;
+    font-size: 0.9rem;
+}
+
+.opow-stats-badge i {
+    color: #12a86b;
+}
+
+.opow-stat-box {
+    height: 100%;
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbfd 100%);
+    border: 1px solid rgba(8, 47, 87, 0.10);
+    border-radius: 22px;
+    padding: 20px 14px;
+    text-align: center;
+    box-shadow: 0 10px 24px rgba(8, 47, 87, 0.07);
+    transition: 0.25s ease;
+}
+
+.opow-stat-box:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 38px rgba(8, 47, 87, 0.13);
+    border-color: rgba(18, 168, 107, 0.28);
+}
+
+.opow-stat-icon {
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 12px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.35rem;
+    box-shadow: 0 12px 24px rgba(8, 47, 87, 0.16);
+}
+
+.opow-stat-icon.blue {
+    background: linear-gradient(135deg, #082f57, #0b3d70);
+}
+
+.opow-stat-icon.green {
+    background: linear-gradient(135deg, #12a86b, #0f8f5d);
+}
+
+.opow-stat-value {
+    color: #082f57;
+    font-size: 1.85rem;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.opow-stat-label {
+    margin-top: 6px;
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+@media (max-width: 767px) {
+    .opow-stats-zone {
+        margin-top: -25px;
+    }
+
+    .opow-stats-panel {
+        padding: 20px 14px;
+        border-radius: 24px;
+    }
+
+    .opow-stats-header {
+        text-align: center;
+        justify-content: center;
+    }
+
+    .opow-stats-header h2 {
+        font-size: 1.25rem;
+    }
+
+    .opow-stat-box {
+        padding: 16px 10px;
+        border-radius: 18px;
+    }
+
+    .opow-stat-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.1rem;
+    }
+
+    .opow-stat-value {
+        font-size: 1.45rem;
+    }
+
+    .opow-stat-label {
+        font-size: 0.8rem;
+    }
+}
+
+/* =====================================================
+   FIX HERO / MENU / CARD / RTL / LOGO CENTER
+   OPOW EL-BAYADH
+===================================================== */
+
+/* Hero plus propre */
+.opow-hero-slider {
+    min-height: 720px !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Overlay plus lisible mais laisse l’image visible */
+.opow-slide::after {
+    background:
+        linear-gradient(90deg, rgba(8, 47, 87, 0.64), rgba(8, 47, 87, 0.42), rgba(8, 47, 87, 0.30)),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.38)) !important;
+}
+
+/* Menu supérieur centré et non collé à la carte */
+.opow-topbar {
+    top: 22px !important;
+    right: 50% !important;
+    left: auto !important;
+    transform: translateX(50%) !important;
+    width: min(1040px, calc(100% - 28px)) !important;
+    min-height: 64px;
+    padding: 12px 16px !important;
+    border-radius: 24px !important;
+    background: rgba(255, 255, 255, 0.16) !important;
+    border: 1px solid rgba(255, 255, 255, 0.24) !important;
+    backdrop-filter: blur(18px) saturate(145%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(145%) !important;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.22) !important;
+    z-index: 50 !important;
+    direction: rtl;
+}
+
+/* Liens du menu */
+.opow-topbar-link {
+    color: #ffffff !important;
+    font-size: 0.92rem !important;
+    font-weight: 900 !important;
+    padding: 10px 16px !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, 0.10) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+
+.opow-topbar-link:hover {
+    background: #ffffff !important;
+    color: #082f57 !important;
+    transform: translateY(-2px);
+    text-shadow: none !important;
+}
+
+.opow-ticket-link {
+    background: linear-gradient(135deg, #12a86b, #0f8f5d) !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+
+/* contenu hero centré */
+.opow-hero-content {
+    min-height: 720px !important;
+    padding: 130px 0 90px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    direction: rtl;
+    text-align: center;
+}
+
+/* cacher النص القديم خارج البطاقة */
+.opow-official-block {
+    display: none !important;
+}
+
+/* carte blanche principale */
+.opow-identity-card {
+    width: 100% !important;
+    max-width: 560px !important;
+    margin: 0 auto !important;
+    padding: 30px 28px !important;
+    border-radius: 32px !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid rgba(8, 47, 87, 0.12) !important;
+    box-shadow: 0 28px 70px rgba(8, 47, 87, 0.30) !important;
+    backdrop-filter: blur(16px) saturate(130%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(130%) !important;
+    color: #082f57 !important;
+    overflow: hidden;
+    position: relative;
+    direction: rtl;
+    text-align: center;
+}
+
+/* ligne officielle en haut */
+.opow-identity-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 7px !important;
+    background: linear-gradient(90deg, #082f57, #12a86b) !important;
+}
+
+/* logo parfaitement centré */
+.opow-logo-box {
+    width: 96px !important;
+    height: 96px !important;
+    margin: 0 auto 18px !important;
+    border-radius: 26px !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(8, 47, 87, 0.12) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 14px 32px rgba(8, 47, 87, 0.15) !important;
+}
+
+.opow-logo-box img {
+    width: 72px !important;
+    height: 72px !important;
+    object-fit: contain !important;
+    display: block;
+}
+
+/* bloc textes officiels */
+.opow-official-text-card {
+    background: #f3f8fb !important;
+    border: 1px solid rgba(8, 47, 87, 0.10) !important;
+    border-radius: 20px !important;
+    padding: 16px 14px !important;
+    margin: 8px 0 18px !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+/* République */
+.opow-republic {
+    color: #082f57 !important;
+    font-size: 0.86rem !important;
+    font-weight: 900 !important;
+    line-height: 1.7 !important;
+    margin-bottom: 3px !important;
+    text-shadow: none !important;
+}
+
+/* Ministère */
+.opow-ministry {
+    color: #0b3d70 !important;
+    font-size: 0.80rem !important;
+    font-weight: 800 !important;
+    line-height: 1.6 !important;
+    margin-bottom: 8px !important;
+    text-shadow: none !important;
+}
+
+/* Titre arabe */
+.opow-office-ar {
+    color: #082f57 !important;
+    font-size: 1.22rem !important;
+    font-weight: 900 !important;
+    line-height: 1.75 !important;
+    margin: 10px auto 6px !important;
+    max-width: 460px;
+    text-shadow: none !important;
+}
+
+/* Titre français */
+.opow-office-fr {
+    color: #64748b !important;
+    font-size: 0.80rem !important;
+    font-weight: 700 !important;
+    line-height: 1.6 !important;
+    margin-bottom: 10px !important;
+    text-shadow: none !important;
+}
+
+/* Description */
+.opow-platform-desc {
+    color: #172033 !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    line-height: 1.9 !important;
+    margin: 12px auto 0 !important;
+    max-width: 460px !important;
+    text-shadow: none !important;
+}
+
+/* boutons داخل البطاقة */
+.opow-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.opow-card-action {
+    min-height: 48px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 12px;
+    font-size: 0.86rem;
+    font-weight: 900;
+    transition: 0.25s ease;
+}
+
+.opow-card-action:hover {
+    transform: translateY(-2px);
+}
+
+.opow-card-action.green {
+    background: linear-gradient(135deg, #12a86b, #0f8f5d);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(18, 168, 107, 0.22);
+}
+
+.opow-card-action.blue {
+    background: linear-gradient(135deg, #082f57, #0b3d70);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(8, 47, 87, 0.20);
+}
+
+.opow-card-action.outline {
+    background: #ffffff;
+    color: #082f57;
+    border: 1px solid rgba(8, 47, 87, 0.18);
+}
+
+/* cartes activités */
+.opow-activity-cards-zone {
+    margin-top: -70px !important;
+    padding-bottom: 50px !important;
+    position: relative;
+    z-index: 9;
+}
+
+.opow-activity-card {
+    border-radius: 24px !important;
+    border: 1px solid rgba(8, 47, 87, 0.13) !important;
+    box-shadow: 0 18px 45px rgba(8, 47, 87, 0.14) !important;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.opow-activity-img {
+    height: 205px !important;
+}
+
+.opow-activity-body {
+    direction: rtl;
+    text-align: center !important;
+    padding: 24px 20px 26px !important;
+}
+
+.opow-activity-body h5 {
+    color: #082f57 !important;
+    font-size: 1.12rem !important;
+    font-weight: 900 !important;
+}
+
+.opow-activity-body p {
+    color: #64748b !important;
+    font-size: 0.92rem !important;
+    line-height: 1.9 !important;
+}
+
+/* stats direction */
+.opow-stats-zone,
+.opow-stats-panel,
+.opow-stat-box {
+    direction: rtl;
+    text-align: center;
+}
+
+/* responsive */
+@media (max-width: 991px) {
+    .opow-hero-content {
+        padding: 150px 0 100px !important;
+        min-height: auto !important;
+    }
+
+    .opow-topbar {
+        top: 14px !important;
+        width: calc(100% - 22px) !important;
+        padding: 10px !important;
+        gap: 8px !important;
+    }
+
+    .opow-identity-card {
+        max-width: 92% !important;
+        padding: 26px 20px !important;
+        border-radius: 26px !important;
+    }
+
+    .opow-card-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .opow-activity-cards-zone {
+        margin-top: -45px !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .opow-topbar-link {
+        width: calc(50% - 5px) !important;
+        font-size: 0.82rem !important;
+        padding: 9px 10px !important;
+    }
+
+    .opow-office-ar {
+        font-size: 1.05rem !important;
+    }
+
+    .opow-platform-desc {
+        font-size: 0.78rem !important;
+    }
+}
+
+@media (max-width: 575px) {
+    .opow-hero-content {
+        padding: 285px 0 80px !important;
+    }
+
+    .opow-topbar-link {
+        width: 100% !important;
+    }
+
+    .opow-identity-card {
+        max-width: 96% !important;
+        padding: 22px 16px !important;
+        border-radius: 22px !important;
+    }
+
+    .opow-logo-box {
+        width: 82px !important;
+        height: 82px !important;
+    }
+
+    .opow-logo-box img {
+        width: 60px !important;
+        height: 60px !important;
+    }
+
+    .opow-republic {
+        font-size: 0.76rem !important;
+    }
+
+    .opow-ministry {
+        font-size: 0.72rem !important;
+    }
+
+    .opow-office-ar {
+        font-size: 0.98rem !important;
+    }
+
+    .opow-office-fr {
+        font-size: 0.72rem !important;
+    }
+
+    .opow-platform-desc {
+        font-size: 0.74rem !important;
+    }
+}
+
+/* =====================================================
+   ACTIVITIES SECTION
+===================================================== */
+
+.opow-activity-icon-box {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 16px;
+    border-radius: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.3s ease;
+}
+
+.opow-card:hover .opow-activity-icon-box {
+    transform: scale(1.1) rotate(-5deg);
+}
+
+.opow-activity-meta .badge {
+    font-size: 0.78rem;
+    font-weight: 800;
+    padding: 6px 12px;
+    border-radius: 999px;
+}
+
+/* =====================================================
+   QUICK ACCESS / LOGIN SECTION
+===================================================== */
+
+.opow-access-card {
+    background: #ffffff;
+    border: 1px solid rgba(8, 47, 87, 0.12);
+    border-radius: 28px;
+    box-shadow: 0 18px 45px rgba(8, 47, 87, 0.12);
+    padding: 32px 24px;
+    text-align: center;
+    height: 100%;
+    transition: 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.opow-access-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--opow-blue), var(--opow-green));
+}
+
+.opow-access-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 28px 60px rgba(8, 47, 87, 0.22);
+}
+
+.opow-access-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 18px;
+    border-radius: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 1.8rem;
+    box-shadow: 0 14px 30px rgba(8, 47, 87, 0.2);
+}
+
+.opow-access-card h5 {
+    color: var(--opow-blue);
+    font-weight: 900;
+    margin-bottom: 10px;
+}
+
+.opow-access-card p {
+    color: var(--opow-muted);
+    font-size: 0.92rem;
+    line-height: 1.8;
+    margin-bottom: 20px;
+}
+
+.opow-access-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.opow-access-actions .btn {
+    font-size: 0.9rem;
+    padding: 12px 16px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+@media (max-width: 767px) {
+    .opow-access-card {
+        padding: 26px 18px;
+        border-radius: 22px;
+    }
+
+    .opow-access-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+        border-radius: 18px;
+    }
+
+    .opow-activity-icon-box {
+        width: 60px;
+        height: 60px;
+        border-radius: 18px;
+    }
+}
+
+/* =====================================================
+   FLASHY TICKET BUTTON - RED BLINKING BORDER
+===================================================== */
+
+.opow-ticket-flash {
+    background: linear-gradient(135deg, #1a56db, #dc2626, #eab308) !important;
+    background-size: 300% 300% !important;
+    color: #ffffff !important;
+    border: 3px solid #dc2626 !important;
+    border-radius: 999px !important;
+    font-weight: 900 !important;
+    position: relative !important;
+    overflow: visible !important;
+    box-shadow:
+        0 0 15px rgba(220, 38, 38, 0.5),
+        0 0 30px rgba(220, 38, 38, 0.25) !important;
+    animation: ticketFlash 3s ease-in-out infinite, borderBlink 1s ease-in-out infinite !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    z-index: 1 !important;
+}
+
+.opow-ticket-flash::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: -5px !important;
+    border-radius: 999px !important;
+    border: 3px solid #dc2626 !important;
+    animation: borderGlow 1s ease-in-out infinite !important;
+    pointer-events: none !important;
+}
+
+.opow-ticket-flash::after {
+    content: "" !important;
+    position: absolute !important;
+    inset: -10px !important;
+    border-radius: 999px !important;
+    border: 2px solid rgba(220, 38, 38, 0.4) !important;
+    animation: borderPulse 1.2s ease-in-out infinite !important;
+    pointer-events: none !important;
+}
+
+.opow-ticket-flash:hover {
+    transform: translateY(-3px) scale(1.05) !important;
+    box-shadow:
+        0 0 30px rgba(220, 38, 38, 0.8),
+        0 0 60px rgba(220, 38, 38, 0.4) !important;
+    color: #ffffff !important;
+}
+
+.opow-ticket-flash i {
+    animation: ticketIconBounce 1s ease-in-out infinite !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
+}
+
+@keyframes ticketFlash {
+    0%, 100% { background-position: 0% 50%; }
+    25% { background-position: 100% 0%; }
+    50% { background-position: 100% 100%; }
+    75% { background-position: 0% 100%; }
+}
+
+@keyframes borderBlink {
+    0%, 100% { border-color: #dc2626; }
+    50% { border-color: #ffffff; }
+}
+
+@keyframes borderGlow {
+    0%, 100% {
+        border-color: #dc2626;
+        box-shadow: 0 0 8px rgba(220, 38, 38, 0.6);
+    }
+    50% {
+        border-color: #ffffff;
+        box-shadow: 0 0 20px rgba(220, 38, 38, 0.9);
+    }
+}
+
+@keyframes borderPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0;
+    }
+}
+
+@keyframes ticketIconBounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2) rotate(-5deg); }
+}

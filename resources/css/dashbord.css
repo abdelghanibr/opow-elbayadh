@@ -1,0 +1,219 @@
+/* === Global === */
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f9;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+/* === Sidebar === */
+.sidebar {
+  width: 220px;
+  background: #05529e;
+  color: #dac7c7;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  transition: transform 0.3s ease;
+  z-index: 1000;
+}
+.sidebar h2 {
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+  font-size: 20px;
+  background: #1a252f;
+}
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.sidebar ul li a {
+  display: block;
+  color: #d1d9db;
+  padding: 12px 18px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.sidebar ul li a:hover {
+  background: #34495e;
+}
+
+/* === Content & Header === */
+
+
+header {
+  background: #2980b9;
+  color: #fff;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+header h1 {
+  margin: 0;
+  font-size: 18px;
+}
+.menu-toggle {
+  font-size: 22px;
+  cursor: pointer;
+  display: none; /* يظهر فقط في الموبايل */
+}
+
+/* === User Info (Header Right) === */
+/* === User Info (vertical in sidebar) === */
+.user-info {
+  display: flex;
+  flex-direction: column; /* الترتيب عمودي */
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  text-align: center;
+}
+
+.user-info img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+}
+
+.user-info .details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.4;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.user-info .details span {
+  font-weight: bold;
+}
+
+.content {
+  margin-left: 260px !important;   /* يمنع أي override */
+  padding: 20px;
+  transition: 0.3s ease;
+  width: 100%
+  ;
+}
+
+.sidebar.active ~ .content {
+  margin-left: 85px !important;
+}
+.content header {
+  margin-top: 0 !important;
+}
+
+.sidebar {
+    background: #0e2238 !important;
+}
+/* === Cards === */
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  padding: 20px;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  min-height: 120px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+.card i {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+.card h3 {
+  font-size: 0.95rem;
+  margin-bottom: 0.3rem;
+}
+.card p {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* === Zone de filtrage === */
+.filters {
+  margin: 20px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.filters label {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+}
+.filters input,
+.filters select,
+.filters button {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+.filters input[type="date"] {
+  cursor: pointer;
+}
+.filters button {
+  background: #27ae60;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+.filters button:hover {
+  background: #219150;
+}
+
+/* === Responsive (mobile) === */
+@media (max-width: 768px) {
+  .menu-toggle { display: block; }
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.active { transform: translateX(0); }
+  .content { margin-left: 0; }
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filters input,
+  .filters select,
+  .filters button {
+    width: 100%;
+  }
+}
+
+/* === Card Colors === */
+.clients { background-color: #3b82f6; color: #fff; }
+.fournisseurs { background-color: #6366f1; color: #fff; }
+.marge { background-color: #22c55e; color: #fff; }
+.stock { background-color: #f59e0b; color: #fff; }
+.ca { background-color: #facc15; color: #111; }
+.decaissement { background-color: #ef4444; color: #fff; }
+.bons-entree { background-color: #a855f7; color: #fff; }
+.bons-livraison { background-color: #14b8a6; color: #fff; }

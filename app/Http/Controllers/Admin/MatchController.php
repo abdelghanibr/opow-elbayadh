@@ -91,8 +91,8 @@ public function selectSeat($match_id)
               ->where('seat_type_id', $seat->seat_type_id)
               ->count();
 
-        // real availability
-        $seat->remaining = max(0, $seat->total_seats - $sold);
+        $total = $seat->total_seats ?? $seat->available_seats ?? 0;
+        $seat->remaining = max(0, $total - $sold);
     }
 //dd($complexSeats) ;
 return view('admin.tickets.select-seat', compact('match', 'complexSeats'));

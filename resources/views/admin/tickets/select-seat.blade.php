@@ -78,7 +78,7 @@
                             <div class="seat-price">{{ number_format($s->seatType->price, 0, ',', ' ') }} دج</div>
                             <div class="seat-status {{ $disabled ? 'status-no' : 'status-ok' }}">
                                 @if($disabled) <i class="fa-solid fa-xmark-circle"></i> نفدت
-                                @else <i class="fa-solid fa-check-circle"></i> {{ $s->remaining }} متاح @endif
+                                @else <i class="fa-solid fa-check-circle"></i> <strong>{{ $s->remaining }}</strong> مقعد متاح @endif
                             </div>
                         </div>
                     @endforeach

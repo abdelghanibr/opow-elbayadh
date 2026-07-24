@@ -12,6 +12,7 @@ use App\Models\MatchModel;
 use App\Models\Complex;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Models\Setting;
 use Carbon\Carbon;
 
 class HomeController extends Controller
@@ -33,6 +34,13 @@ class HomeController extends Controller
         $matchesCount = MatchModel::whereIn('status', ['scheduled', 'pending'])
             ->whereDate('match_date', '>=', Carbon::today())
             ->count();
+
+        $upcomingMatches = MatchModel::whereIn('status', ['scheduled', 'pending'])
+            ->whereDate('match_date', '>=', Carbon::today())
+            ->with('homeTeam', 'awayTeam', 'complex')
+            ->orderBy('match_date')
+            ->limit(3)
+            ->get();
 
         /*
         |--------------------------------------------------------------------------
@@ -59,12 +67,30 @@ class HomeController extends Controller
             'matches_count'      => $matchesCount,
         ];
 
+        $settings = Setting::allArray();
+
+        $wilayaAr      = $settings['wilaya_ar'] ?? 'البيض';
+        $wilayaFr      = $settings['wilaya_fr'] ?? 'EL-BAYADH';
+        $officeShort   = $settings['office_short'] ?? 'OPOW ' . $wilayaFr;
+        $officeLabelFr = $settings['office_label_fr'] ?? 'Office du Parc Omnisports de la wilaya de ' . $wilayaFr;
+        $contactEmail  = $settings['contact_email'] ?? 'contact@opow-elbayadh.dz';
+        $contactPhone  = $settings['contact_phone'] ?? '049613680';
+        $contactPlace  = $settings['contact_place'] ?? 'ديوان المركب المتعدد الرياضات لولاية ' . $wilayaAr;
+
         return view('welcome', compact(
             'news',
             'matchesCount',
+            'upcomingMatches',
             'events',
             'activities',
-            'stats'
+            'stats',
+            'wilayaAr',
+            'wilayaFr',
+            'officeShort',
+            'officeLabelFr',
+            'contactEmail',
+            'contactPhone',
+            'contactPlace'
         ));
     }
 

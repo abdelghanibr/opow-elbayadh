@@ -1,5 +1,4 @@
 @extends('layouts.app')
-
 @section('content')
 
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -15,7 +14,7 @@
 
     $wilayaAr      = $wilayaAr ?? 'البيض';
     $wilayaFr      = $wilayaFr ?? 'EL-BAYADH';
-    $officeShort   = $officeShort ?? config('app.name');
+    $officeShort   = $officeShort ?? 'OPOW ' . $wilayaFr;
     $officeLabelFr = $officeLabelFr ?? 'Office du Parc Omnisports de la wilaya de ' . $wilayaFr;
     $contactEmail  = $contactEmail ?? 'contact@opow-elbayadh.dz';
     $contactPhone  = $contactPhone ?? '049613680';
@@ -70,15 +69,17 @@
             الفعاليات
         </a>
 
-        <a href="#activities-section" class="opow-topbar-link">
-            <i class="fa-solid fa-person-running"></i>
-            الأنشطة
-        </a>
-
         <a href="#contact" class="opow-topbar-link">
             <i class="fa-solid fa-address-book"></i>
             التواصل
         </a>
+
+        @if($matchesCount > 0)
+            <a href="{{ route('matches.public') }}" class="opow-topbar-link opow-ticket-link">
+                <i class="fa-solid fa-ticket"></i>
+                شراء التذاكر
+            </a>
+        @endif
     </div>
 
 
@@ -131,12 +132,10 @@
                                 ابدأ التسجيل
                             </a>
 
-                            @if($matchesCount > 0)
-                                <a href="{{ route('matches.public') }}" class="opow-card-action opow-ticket-flash">
-                                    <i class="fa-solid fa-ticket"></i>
-                                    شراء التذاكر
-                                </a>
-                            @endif
+                            <a href="#news" class="opow-card-action blue">
+                                <i class="fa-solid fa-bullhorn"></i>
+                                الأخبار
+                            </a>
 
                             <a href="#events" class="opow-card-action outline">
                                 <i class="fa-solid fa-calendar-check"></i>
@@ -371,134 +370,6 @@
         </div>
     </div>
 </section>
-
-{{-- الأنشطة الرياضية --}}
-<section class="opow-section" id="activities-section">
-    <div class="container">
-
-        <h2 class="opow-section-title">
-            🏃 الأنشطة الرياضية
-        </h2>
-
-        <div class="row g-4">
-            @forelse($activities as $activity)
-                @php
-                    $activityIcon = $activity->activity_category->icon ?? 'fa-dumbbell';
-                    $activityColor = $activity->activity_category->color ?? '#082f57';
-                @endphp
-
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="opow-card">
-                        <div class="opow-activity-icon-box" style="background: {{ $activityColor }}15; border: 2px solid {{ $activityColor }}30;">
-                            <i class="fa-solid {{ $activityIcon }}" style="color: {{ $activityColor }}; font-size: 2rem;"></i>
-                        </div>
-
-                        <h6>{{ $activity->title }}</h6>
-
-                        <p class="small">
-                            {{ \Illuminate\Support\Str::limit(strip_tags($activity->description ?? ''), 120) }}
-                        </p>
-
-                        @if($activity->complexes && $activity->complexes->count())
-                            <div class="opow-activity-meta mt-2">
-                                <span class="badge bg-primary">
-                                    <i class="fa-solid fa-building me-1"></i>
-                                    {{ $activity->complexes->count() }} مركب
-                                </span>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            @empty
-                <p class="text-center text-muted">لا توجد أنشطة حالياً</p>
-            @endforelse
-        </div>
-
-    </div>
-</section>
-
-{{-- الوصول السريع - أنواع الحسابات --}}
-<section class="opow-section" id="access-section" style="background: linear-gradient(180deg, #f4f8fb 0%, #e8f0f7 100%);">
-    <div class="container">
-
-        <h2 class="opow-section-title">
-            🔐 الوصول السريع
-        </h2>
-
-        <p class="text-center text-muted mb-5" style="max-width: 600px; margin-inline: auto;">
-            اختر نوع حسابك للوصول إلى الخدمات المناسبة
-        </p>
-
-        <div class="row g-4 justify-content-center">
-
-            {{-- فرد --}}
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="opow-access-card">
-                    <div class="opow-access-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-                        <i class="fa-solid fa-user"></i>
-                    </div>
-                    <h5>منخرط / فرد</h5>
-                    <p>سجل كمنخرط للاستفادة من مرافق المركب المتعدد الرياضات</p>
-                    <div class="opow-access-actions">
-                        <a href="{{ route('person.login') }}" class="btn btn-opow-primary">
-                            <i class="fa-solid fa-right-to-bracket"></i>
-                            تسجيل الدخول
-                        </a>
-                        <a href="{{ route('person.register') }}" class="btn btn-opow-green">
-                            <i class="fa-solid fa-user-plus"></i>
-                            حساب جديد
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            {{-- نادي --}}
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="opow-access-card">
-                    <div class="opow-access-icon" style="background: linear-gradient(135deg, #082f57, #0b3d70);">
-                        <i class="fa-solid fa-shield-halved"></i>
-                    </div>
-                    <h5>نادي رياضي</h5>
-                    <p>سجّل ناديك الرياضي لإدارة المنخرطين والحجوزات</p>
-                    <div class="opow-access-actions">
-                        <a href="{{ route('club.login') }}" class="btn btn-opow-primary">
-                            <i class="fa-solid fa-right-to-bracket"></i>
-                            تسجيل الدخول
-                        </a>
-                        <a href="{{ route('club.register') }}" class="btn btn-opow-green">
-                            <i class="fa-solid fa-user-plus"></i>
-                            تسجيل النادي
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            {{-- شركة --}}
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="opow-access-card">
-                    <div class="opow-access-icon" style="background: linear-gradient(135deg, #12a86b, #0f8f5d);">
-                        <i class="fa-solid fa-building"></i>
-                    </div>
-                    <h5>مؤسسة / شركة</h5>
-                    <p>سجّل مؤسستك لتوفير الأنشطة الرياضية لموظفيك</p>
-                    <div class="opow-access-actions">
-                        <a href="{{ route('entreprise.login') }}" class="btn btn-opow-primary">
-                            <i class="fa-solid fa-right-to-bracket"></i>
-                            تسجيل الدخول
-                        </a>
-                        <a href="{{ route('entreprise.register') }}" class="btn btn-opow-green">
-                            <i class="fa-solid fa-building-circle-check"></i>
-                            تسجيل المؤسسة
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-    </div>
-</section>
-
 {{-- Modal اختيار المركبات --}}
 <div class="modal fade" id="complexModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen-lg-down modal-lg modal-dialog-centered">
@@ -701,11 +572,8 @@
                 <ul class="opow-footer-links">
                     <li><a href="#top">الصفحة الرئيسية</a></li>
                     <li><a href="#facilities">المنشآت الرياضية</a></li>
-                    <li><a href="#activities-section">الأنشطة الرياضية</a></li>
                     <li><a href="#news">آخر المستجدات</a></li>
                     <li><a href="#events">الفعاليات القادمة</a></li>
-                    <li><a href="{{ route('legal.terms') }}">الشروط والأحكام</a></li>
-                    <li><a href="{{ route('legal.privacy') }}">سياسة الخصوصية</a></li>
                     <li>
                         <a href="https://msport.gov.dz/" target="_blank">
                             الموقع الرسمي للوزارة
@@ -717,12 +585,98 @@
         </div>
 
         <div class="opow-footer-bottom text-center mt-4">
-            © 2026 – جميع الحقوق محفوظة | ديوان المركب المتعدد الرياضات لولاية {{ $wilayaAr }}
+            © 2026 – جميع الحقوق محفوظة | ديووان المركب المتعدد الرياضات لولاية {{ $wilayaAr }}
         </div>
 
     </div>
 </footer>
 
 <script src="{{ asset('js/welcome1.js') }}"></script>
+
+@if($upcomingMatches->count())
+<div class="modal fade" id="matchPromoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius: 20px; overflow: hidden; border: 3px solid #e63946;">
+
+            <div style="background: linear-gradient(135deg, #e63946, #d62828); padding: 18px 25px; color: #fff; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="background: #fff; color: #e63946; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                        <i class="fa-solid fa-futbol"></i>
+                    </div>
+                    <div>
+                        <h5 style="margin: 0; font-weight: 800; font-size: 1.2rem;">مباريات قادمة — احجز تذكرتك الآن!</h5>
+                        <small style="opacity: 0.9;">لا تفوّت الفرصة، التذاكر محدودة</small>
+                    </div>
+                </div>
+                <button type="button" data-bs-dismiss="modal" style="background: rgba(255,255,255,0.2); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 1.2rem; cursor: pointer;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="modal-body" style="padding: 20px 25px;">
+                <div class="row g-3">
+                    @foreach($upcomingMatches as $match)
+                        <div class="col-12">
+                            <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 14px; padding: 16px 20px; border-right: 5px solid #082f57; transition: all 0.3s;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 4px 15px rgba(8,47,87,0.15)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">
+                                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="background: #082f57; color: #fff; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem;">
+                                            {{ $loop->iteration }}
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 700; color: #082f57; font-size: 1.05rem;">
+                                                {{ $match->homeTeam->name ?? '—' }} <span style="color: #e63946; font-weight: 800;">VS</span> {{ $match->awayTeam->name ?? '—' }}
+                                            </div>
+                                            <div style="color: #6c757d; font-size: 0.85rem; margin-top: 2px;">
+                                                <i class="fa-solid fa-trophy" style="color: #e63946;"></i> {{ $match->competition ?? '—' }}
+                                                <span style="margin: 0 8px;">|</span>
+                                                <i class="fa-solid fa-building"></i> {{ $match->complex->name ?? '—' }}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style="text-align: left;">
+                                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                            <span style="background: #fff3cd; color: #856404; padding: 4px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 600;">
+                                                <i class="fa-regular fa-calendar"></i> {{ \Carbon\Carbon::parse($match->match_date)->format('d/m/Y') }}
+                                            </span>
+                                            @if($match->match_time)
+                                                <span style="background: #d1ecf1; color: #0c5460; padding: 4px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 600;">
+                                                    <i class="fa-regular fa-clock"></i> {{ $match->match_time }}
+                                                </span>
+                                            @endif
+                                            <a href="{{ route('matches.public') }}" style="background: linear-gradient(135deg, #e63946, #d62828); color: #fff; padding: 6px 18px; border-radius: 20px; text-decoration: none; font-weight: 700; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; transition: all 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform=''">
+                                                <i class="fa-solid fa-ticket"></i> احجز الآن
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div style="text-align: center; margin-top: 18px;">
+                    <a href="{{ route('matches.public') }}" style="background: linear-gradient(135deg, #082f57, #0b3d70); color: #fff; padding: 10px 35px; border-radius: 30px; text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(8,47,87,0.3)'" onmouseout="this.style.transform=''">
+                        <i class="fa-solid fa-ticket"></i> عرض جميع المباريات والتسجيل
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        var modal = new bootstrap.Modal(document.getElementById('matchPromoModal'));
+        modal.show();
+    }, 2500);
+});
+</script>
+@endif
 
 @endsection

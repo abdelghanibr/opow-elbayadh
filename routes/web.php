@@ -440,6 +440,14 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     Route::post('/pool-closures/{poolClosure}/apply', [PoolClosureController::class, 'apply'])
         ->name('pool-closures.apply');
+
+    // ---------------------------
+    //         SETTINGS
+    // ---------------------------
+    Route::get('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])
+        ->name('admin.settings.index');
+    Route::post('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])
+        ->name('admin.settings.update');
 });
 
 

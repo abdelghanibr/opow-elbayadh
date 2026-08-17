@@ -15,7 +15,7 @@
         </div>
 
         <!-- Form -->
-        <form method="POST" action="{{ route('club.register.post') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('club.register.post') }}" id="clubRegisterForm" enctype="multipart/form-data" novalidate>
             @csrf
                 @if($selectedComplex)
     <div class="alert alert-info text-center fw-bold">
@@ -29,7 +29,7 @@
                 <!-- Club Name -->
                 <div class="col-md-6">
                     <label class="form-label">اسم النادي</label>
-                    <input type="text" name="name" value="{{ old('name') }}"
+                    <input type="text" name="name" id="club_name" value="{{ old('name') }}"
                            class="form-control @error('name') is-invalid @enderror" required>
                     @error('name')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
@@ -37,7 +37,7 @@
                 <!-- Email -->
                 <div class="col-md-6">
                     <label class="form-label">البريد الإلكتروني</label>
-                    <input type="email" name="email" value="{{ old('email') }}"
+                    <input type="email" name="email" id="club_email" value="{{ old('email') }}"
                            class="form-control @error('email') is-invalid @enderror" required>
                     @error('email')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
@@ -49,7 +49,7 @@
                 <!-- Agreement Number -->
                 <div class="col-md-6">
                     <label class="form-label">رقم الاعتماد</label>
-                    <input type="text" name="numero_agrement" value="{{ old('numero_agrement') }}"
+                    <input type="text" name="numero_agrement" id="club_agrement" value="{{ old('numero_agrement') }}"
                            class="form-control @error('numero_agrement') is-invalid @enderror" required>
                     @error('numero_agrement')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
@@ -57,7 +57,7 @@
                 <!-- Expiration Date -->
                 <div class="col-md-6">
                     <label class="form-label">تاريخ انتهاء الاعتماد</label>
-                    <input type="date" name="date_expiration" value="{{ old('date_expiration') }}"
+                    <input type="date" name="date_expiration" id="club_date_expiration" value="{{ old('date_expiration') }}"
                            class="form-control @error('date_expiration') is-invalid @enderror" required>
                     @error('date_expiration')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
@@ -65,7 +65,7 @@
                 <!-- Attachments -->
                 <div class="col-md-12">
                     <label class="form-label">نسخة من وثيقة الاعتماد 📎</label>
-                    <input type="file" name="attachments[]" multiple
+                    <input type="file" name="attachments[]" id="club_attachments" multiple
                            class="form-control @error('attachments') is-invalid @enderror">
                     @error('attachments')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
@@ -73,7 +73,7 @@
                 <!-- Password -->
                 <div class="col-md-6">
                     <label class="form-label">كلمة المرور</label>
-                    <input type="password" name="password"
+                    <input type="password" name="password" id="club_password"
                            class="form-control @error('password') is-invalid @enderror" required>
                     @error('password')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
@@ -81,7 +81,7 @@
                 <!-- Confirm Password -->
                 <div class="col-md-6">
                     <label class="form-label">تأكيد كلمة المرور</label>
-                    <input type="password" name="password_confirmation" class="form-control" required>
+                    <input type="password" name="password_confirmation" id="club_password_confirmation" class="form-control" required>
                 </div>
 
 <div class="mt-3">
@@ -110,6 +110,7 @@
 
     <input type="text" 
            name="captcha_word" 
+           id="club_captcha"
            class="form-control text-center"
            placeholder="اكتب الكلمة هنا" 
            required>
@@ -135,7 +136,7 @@
 
                         <div class="form-check mt-3">
                             <input class="form-check-input @error('privacy_policy') is-invalid @enderror"
-                                   type="checkbox" name="privacy_policy" value="1" required>
+                                   type="checkbox" name="privacy_policy" id="club_privacy" value="1" required>
 
                             <label class="form-check-label fw-bold">
                                 أوافق على <span class="privacy-link">سياسة حماية البيانات</span>
@@ -233,5 +234,89 @@
 }
 
 </style>
+
+@push('js')
+<script>
+var checkEmailUrl = "{{ route('auth.check-email') }}";
+
+document.getElementById('club_email').addEventListener('blur', function() {
+    var email = this.value.trim();
+    if (!email) return;
+    fetch(checkEmailUrl + '?email=' + encodeURIComponent(email))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var el = document.getElementById('club_email');
+            var existing = el.parentNode.querySelector('.email-exists-error');
+            if (existing) existing.remove();
+            if (data.exists) {
+                var div = document.createElement('div');
+                div.className = 'form-error email-exists-error';
+                div.textContent = 'هذا البريد الإلكتروني مسجل بالفعل.';
+                el.parentNode.appendChild(div);
+                el.classList.add('is-invalid');
+            }
+        });
+});
+
+document.getElementById('clubRegisterForm').addEventListener('submit', function(e) {
+    var valid = true;
+    var errors = [];
+
+    var name = document.getElementById('club_name').value.trim();
+    if (!name || name.length < 3) {
+        errors.push('اسم النادي مطلوب (3 أحرف على الأقل).');
+        valid = false;
+    }
+
+    var email = document.getElementById('club_email').value.trim();
+    var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRe.test(email)) {
+        errors.push('أدخل بريد إلكتروني صحيح.');
+        valid = false;
+    }
+
+    var agrement = document.getElementById('club_agrement').value.trim();
+    if (!agrement) {
+        errors.push('رقم الاعتماد مطلوب.');
+        valid = false;
+    }
+
+    var dateExp = document.getElementById('club_date_expiration').value;
+    if (!dateExp) {
+        errors.push('تاريخ انتهاء الاعتماد مطلوب.');
+        valid = false;
+    }
+
+    var password = document.getElementById('club_password').value;
+    if (!password || password.length < 8) {
+        errors.push('كلمة المرور يجب أن تكون 8 أحرف على الأقل.');
+        valid = false;
+    }
+
+    var confirm = document.getElementById('club_password_confirmation').value;
+    if (password !== confirm) {
+        errors.push('كلمتا المرور غير متطابقتين.');
+        valid = false;
+    }
+
+    var captcha = document.getElementById('club_captcha').value.trim();
+    if (!captcha) {
+        errors.push('التحقق من الروبوت مطلوب.');
+        valid = false;
+    }
+
+    var privacy = document.getElementById('club_privacy').checked;
+    if (!privacy) {
+        errors.push('يجب الموافقة على سياسة حماية البيانات.');
+        valid = false;
+    }
+
+    if (!valid) {
+        e.preventDefault();
+        alert(errors.join('\n'));
+    }
+});
+</script>
+@endpush
 
 @endsection

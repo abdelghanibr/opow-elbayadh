@@ -15,7 +15,7 @@
         </div>
 
         <!-- Form -->
-        <form method="POST" action="{{ route('entreprise.register.post') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('entreprise.register.post') }}" id="companyRegisterForm" enctype="multipart/form-data" novalidate>
             @csrf
               @if($selectedComplex)
     <div class="alert alert-info text-center fw-bold">
@@ -29,7 +29,7 @@
                 <!-- Company Name -->
                 <div class="col-md-6">
                     <label class="form-label">اسم الشركة</label>
-                    <input type="text" name="name" value="{{ old('name') }}"
+                    <input type="text" name="name" id="company_name" value="{{ old('name') }}"
                         class="form-control @error('name') is-invalid @enderror" required>
 
                     @error('name')
@@ -40,7 +40,7 @@
                 <!-- Email -->
                 <div class="col-md-6">
                     <label class="form-label">البريد الإلكتروني</label>
-                    <input type="email" name="email" value="{{ old('email') }}"
+                    <input type="email" name="email" id="company_email" value="{{ old('email') }}"
                         class="form-control @error('email') is-invalid @enderror" required>
 
                     @error('email')
@@ -55,7 +55,7 @@
                 <!-- Commercial number -->
                 <div class="col-md-6">
                     <label class="form-label">رقم السجل التجاري</label>
-                    <input type="text" name="commercial_number" value="{{ old('commercial_number') }}"
+                    <input type="text" name="commercial_number" id="company_commercial" value="{{ old('commercial_number') }}"
                         class="form-control @error('commercial_number') is-invalid @enderror" required>
 
                     @error('commercial_number')
@@ -66,7 +66,7 @@
                 <!-- Documents -->
                 <div class="col-md-6">
                     <label class="form-label">وثائق الشركة 📎</label>
-                    <input type="file" name="attachments[]" multiple
+                    <input type="file" name="attachments[]" id="company_attachments" multiple
                         class="form-control @error('attachments') is-invalid @enderror">
 
                     @error('attachments')
@@ -77,7 +77,7 @@
                 <!-- Password -->
                 <div class="col-md-6">
                     <label class="form-label">كلمة المرور</label>
-                    <input type="password" name="password"
+                    <input type="password" name="password" id="company_password"
                         class="form-control @error('password') is-invalid @enderror" required>
 
                     @error('password')
@@ -88,7 +88,7 @@
                 <!-- Confirm Password -->
                 <div class="col-md-6">
                     <label class="form-label">تأكيد كلمة المرور</label>
-                    <input type="password" name="password_confirmation" class="form-control" required>
+                    <input type="password" name="password_confirmation" id="company_password_confirmation" class="form-control" required>
                 </div>
 
                 <!-- Not robot -->
@@ -118,6 +118,7 @@
 
     <input type="text" 
            name="captcha_word" 
+           id="company_captcha"
            class="form-control text-center"
            placeholder="اكتب الكلمة هنا" 
            required>
@@ -144,7 +145,7 @@
 
                         <div class="form-check mt-2">
                             <input class="form-check-input @error('privacy_policy') is-invalid @enderror"
-                                type="checkbox" name="privacy_policy" value="1" required>
+                                type="checkbox" name="privacy_policy" id="company_privacy" value="1" required>
 
                             <label class="form-check-label fw-bold">
                                 أوافق على <span class="privacy-link">سياسة حماية البيانات</span>
@@ -249,5 +250,83 @@
 }
 
 </style>
+
+@push('js')
+<script>
+var checkEmailUrl = "{{ route('auth.check-email') }}";
+
+document.getElementById('company_email').addEventListener('blur', function() {
+    var email = this.value.trim();
+    if (!email) return;
+    fetch(checkEmailUrl + '?email=' + encodeURIComponent(email))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var el = document.getElementById('company_email');
+            var existing = el.parentNode.querySelector('.email-exists-error');
+            if (existing) existing.remove();
+            if (data.exists) {
+                var div = document.createElement('div');
+                div.className = 'form-error email-exists-error';
+                div.textContent = 'هذا البريد الإلكتروني مسجل بالفعل.';
+                el.parentNode.appendChild(div);
+                el.classList.add('is-invalid');
+            }
+        });
+});
+
+document.getElementById('companyRegisterForm').addEventListener('submit', function(e) {
+    var valid = true;
+    var errors = [];
+
+    var name = document.getElementById('company_name').value.trim();
+    if (!name || name.length < 3) {
+        errors.push('اسم الشركة مطلوب (3 أحرف على الأقل).');
+        valid = false;
+    }
+
+    var email = document.getElementById('company_email').value.trim();
+    var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRe.test(email)) {
+        errors.push('أدخل بريد إلكتروني صحيح.');
+        valid = false;
+    }
+
+    var commercial = document.getElementById('company_commercial').value.trim();
+    if (!commercial) {
+        errors.push('رقم السجل التجاري مطلوب.');
+        valid = false;
+    }
+
+    var password = document.getElementById('company_password').value;
+    if (!password || password.length < 8) {
+        errors.push('كلمة المرور يجب أن تكون 8 أحرف على الأقل.');
+        valid = false;
+    }
+
+    var confirm = document.getElementById('company_password_confirmation').value;
+    if (password !== confirm) {
+        errors.push('كلمتا المرور غير متطابقتين.');
+        valid = false;
+    }
+
+    var captcha = document.getElementById('company_captcha').value.trim();
+    if (!captcha) {
+        errors.push('التحقق من الروبوت مطلوب.');
+        valid = false;
+    }
+
+    var privacy = document.getElementById('company_privacy').checked;
+    if (!privacy) {
+        errors.push('يجب الموافقة على سياسة حماية البيانات.');
+        valid = false;
+    }
+
+    if (!valid) {
+        e.preventDefault();
+        alert(errors.join('\n'));
+    }
+});
+</script>
+@endpush
 
 @endsection

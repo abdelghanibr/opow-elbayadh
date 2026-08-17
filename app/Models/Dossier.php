@@ -8,7 +8,7 @@ class Dossier extends Model
 {
    
 
-    protected $fillable = ['etat','attachments','note_admin','person_id','owner_type'];
+    protected $fillable = ['etat','attachments','note_admin','person_id','owner_type','validated_by','validated_at'];
 
     public function user()
     {

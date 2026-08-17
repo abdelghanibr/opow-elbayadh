@@ -16,6 +16,15 @@
                 <option value="rejected">❌ مرفوض</option>
             </select>
         </div>
+        <div class="col-md-4">
+            <label class="form-label fw-bold">فلترة حسب المركب</label>
+            <select id="filterComplex" class="form-select form-select-sm">
+                <option value="">كل المركبات</option>
+                @foreach($complexes as $complex)
+                    <option value="{{ $complex->nom }}">{{ $complex->nom }}</option>
+                @endforeach
+            </select>
+        </div>
     </div>
 
     {{-- ===== الجدول ===== --}}
@@ -25,19 +34,18 @@
 
             <thead class="table-dark">
                 <tr>
-                    <th>#</th>
-                    <th>اسم النادي</th>
-                    <th>رقم الإعتماد</th>
-                    <th>تاريخ نهاية الإعتماد</th>
-                    <th>الحالة</th>
-                
-                   <th>تاريخ التسجيل</th>
-               
-                         <th>تاريخ الموافقة</th>
-                
-                    <th>المرفقات</th>
-                    <th>ملاحظة المسؤول</th>
-                    <th>إجراءات</th>
+                    <th data-priority="6">#</th>
+                    <th data-priority="1">اسم النادي</th>
+                    <th data-priority="2">المركب</th>
+                    <th data-priority="9">المرفقات</th>
+                    <th data-priority="3">إجراءات</th>
+                    <th data-priority="4">حذف نهائي</th>
+                    <th data-priority="10">رقم الإعتماد</th>
+                    <th data-priority="11">تاريخ نهاية الإعتماد</th>
+                    <th data-priority="5">الحالة</th>
+                    <th data-priority="8">تاريخ التسجيل</th>
+                    <th data-priority="12">تاريخ الموافقة</th>
+                    <th data-priority="13">ملاحظة المسؤول</th>
                 </tr>
             </thead>
 
@@ -63,43 +71,10 @@
                 <tr>
                     <td>{{ $c->id }}</td>
                     <td class="fw-semibold">{{ $c->nom }}</td>
-                    <td>{{ $c->numero_agrement }}</td>
-                    <td>{{ $c->date_expiration }}</td>
-                   
-                          {{-- الحالة --}}
                     <td>
-                        <span class="etat d-none">{{ $c->etat }}</span>
-
-                        @if($c->etat === 'pending')
-                            <span class="badge bg-warning text-dark">⏳ قيد الدراسة</span>
-                        @elseif($c->etat === 'approved')
-                            <span class="badge bg-success">✔ مقبول</span>
-                        @else
-                            <span class="badge bg-danger">❌ مرفوض</span>
-                        @endif
+                        <span class="complex d-none">{{ $c->user?->complex?->nom ?? '—' }}</span>
+                        <span class="badge bg-info-subtle text-info-emphasis">{{ $c->user?->complex?->nom ?? '—' }}</span>
                     </td>
-                   
-                     <td>{{ $c->created_at }}</td>
-                    <td>
-@if($c->validated_at) 
-    <small class="text-muted">
-        @if($c->etat === 'approved') 
-            ✔️ <strong>مقبول</strong>
-        @elseif($c->etat === 'rejected') 
-            ❌ <strong>مرفوض</strong>
-        @else
-            🕒 <strong>قيد المعالجة</strong>
-        @endif
-        <br>
-        بتاريخ {{ $c->validated_at}} 
-        <br>
-        بواسطة {{ $c->validator->name ?? '—' }} 
-    </small>
-@else
-    <span class="badge bg-secondary">لم يُراجع بعد</span>
-@endif
-</td>
-             
 
                     {{-- المرفقات --}}
                     <td class="text-start">
@@ -123,13 +98,8 @@
                         @endif
                     </td>
 
-                    {{-- الملاحظة --}}
-                    <td class="text-start small">
-                        {{ $c->note_admin ?? '—' }}
-                    </td>
-
                     {{-- الإجراءات --}}
-                    <td>
+                    <td style="white-space: nowrap;">
                         @if($c->etat === 'pending')
                             <a href="{{ route('admin.clubs.approve', $c->id) }}"
                                class="btn btn-success btn-sm"
@@ -156,7 +126,104 @@
 </a>
 
                     </td>
+
+                    {{-- 🗑️ حذف نهائي (عمود منفصل + تأكيد محمي) --}}
+                    <td style="white-space: nowrap;">
+                        <button class="btn btn-outline-danger btn-sm"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deleteClubModal{{ $c->id }}">
+                            🗑️ حذف
+                        </button>
+                    </td>
+
+                    <td>{{ $c->numero_agrement }}</td>
+                    <td>{{ $c->date_expiration }}</td>
+
+                          {{-- الحالة --}}
+                    <td>
+                        <span class="etat d-none">{{ $c->etat }}</span>
+
+                        @if($c->etat === 'pending')
+                            <span class="badge bg-warning text-dark">⏳ قيد الدراسة</span>
+                        @elseif($c->etat === 'approved')
+                            <span class="badge bg-success">✔ مقبول</span>
+                        @else
+                            <span class="badge bg-danger">❌ مرفوض</span>
+                        @endif
+                    </td>
+
+                     <td>{{ $c->created_at }}</td>
+                    <td>
+@if($c->validated_at) 
+    <small class="text-muted">
+        @if($c->etat === 'approved') 
+            ✔️ <strong>مقبول</strong>
+        @elseif($c->etat === 'rejected') 
+            ❌ <strong>مرفوض</strong>
+        @else
+            🕒 <strong>قيد المعالجة</strong>
+        @endif
+        <br>
+        بتاريخ {{ $c->validated_at}} 
+        <br>
+        بواسطة {{ $c->validator->name ?? '—' }} 
+    </small>
+@else
+    <span class="badge bg-secondary">لم يُراجع بعد</span>
+@endif
+</td>
+             
+
+                    {{-- الملاحظة --}}
+                    <td class="text-start small">
+                        {{ $c->note_admin ?? '—' }}
+                    </td>
                 </tr>
+
+                {{-- ===== Modal حذف نهائي (يتطلب كتابة اسم النادي) ===== --}}
+                <div class="modal fade" id="deleteClubModal{{ $c->id }}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <form action="{{ route('admin.clubs.destroy', $c->id) }}" method="POST">
+                                @csrf
+                                @method('DELETE')
+
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title">🗑️ حذف نهائي</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+
+                                <div class="modal-body">
+                                    <div class="alert alert-danger small">
+                                        سيتم حذف النادي <strong>{{ $c->nom }}</strong>
+                                        وحساب تسجيل الدخول الخاص به نهائيًا.<br>
+                                        هذه العملية لا يمكن التراجع عنها.
+                                    </div>
+
+                                    <label class="fw-bold small">
+                                        اكتب اسم النادي لتأكيد الحذف:
+                                    </label>
+                                    <input type="text"
+                                           class="form-control mt-1 delete-club-confirm-input"
+                                           data-club-name="{{ $c->nom }}"
+                                           data-confirm-btn="#btnConfirmDelete{{ $c->id }}"
+                                           placeholder="{{ $c->nom }}"
+                                           autocomplete="off">
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                    <button type="submit"
+                                            id="btnConfirmDelete{{ $c->id }}"
+                                            class="btn btn-danger"
+                                            disabled>
+                                        حذف نهائي
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
 
                 {{-- ===== Modal Note Admin ===== --}}
                 <div class="modal fade" id="noteModal{{ $c->id }}" tabindex="-1">
@@ -206,6 +273,10 @@ table.dataTable {
     font-size: 12px;
 }
 
+.btn {
+    white-space: nowrap;
+}
+
 table thead th {
     white-space: nowrap;
 }
@@ -242,12 +313,3 @@ table thead th {
 
 
 
-
-
-
-@push('js')
-@include('admin.partials.datatable-script', ['tableId' => '#clubsTable'])
-
-
-
-@endpush

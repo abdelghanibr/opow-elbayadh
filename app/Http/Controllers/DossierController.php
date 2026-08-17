@@ -349,13 +349,4 @@ public function reject($id)
 
     return back()->with('error', 'تم رفض الملف ❌');
 }*/
-public function person()
-{
-    return $this->belongsTo(Person::class);
-}
-public function user()
-{
-    return $this->belongsTo(User::class);
-}
-
 }

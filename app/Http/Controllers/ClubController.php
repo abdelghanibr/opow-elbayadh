@@ -4,7 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Club;
+use App\Models\Complex;
+use App\Models\Person;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request; 
 class ClubController extends Controller
 {
@@ -16,24 +21,56 @@ class ClubController extends Controller
     
     public function index()
 {
-    $admin = auth()->user(); // المستخدم المتصل
+    $admin = auth()->user();
 
-    // إذا كان للمدير مجمع معيّن → اجلب فقط الأندية التابعة له
     if (!empty($admin->complex_id) && $admin->complex_id != 0) {
-        $clubs = Club::with('user')
+        $clubs = Club::with(['user', 'user.complex'])
             ->whereHas('user', function ($q) use ($admin) {
                 $q->where('complex_id', $admin->complex_id);
             })
             ->orderByDesc('id')
             ->get();
+        $complexes = Complex::where('id', $admin->complex_id)->get();
     } else {
-        // إذا لا يوجد مجمع → اظهر جميع الأندية
-        $clubs = Club::with('user')
+        $clubs = Club::with(['user', 'user.complex'])
             ->orderByDesc('id')
             ->get();
+        $complexes = Complex::orderBy('nom')->get();
     }
 
-    return view('admin.clubs.index', compact('clubs'));
+    return view('admin.clubs.index', compact('clubs', 'complexes'));
+}
+
+public function destroy($id)
+{
+    $club = Club::findOrFail($id);
+    $userId = $club->user_id;
+
+    DB::transaction(function () use ($club, $userId) {
+        $memberIds = Person::where('user_id', $userId)->pluck('id');
+
+        $resQuery = \App\Models\Reservation::query();
+        if ($memberIds->isNotEmpty()) {
+            $resQuery->where(function ($q) use ($userId, $memberIds) {
+                $q->where('user_id', $userId)->orWhereIn('person_id', $memberIds);
+            });
+        } else {
+            $resQuery->where('user_id', $userId);
+        }
+        $resQuery->delete();
+
+        \App\Models\Reservation::where('updated_by', $userId)->update(['updated_by' => null]);
+
+        foreach (Person::where('user_id', $userId)->get() as $member) {
+            \App\Models\Dossier::where('person_id', $member->id)->delete();
+            $member->delete();
+        }
+
+        $club->delete();
+        User::where('id', $userId)->delete();
+    });
+
+    return back()->with('success', '🗑️ تم حذف النادي وحساب تسجيل الدخول الخاص به بنجاح.');
 }
 
 
@@ -104,7 +141,7 @@ public function updateNote(Request $request, Dossier $dossier)
         'note_admin' => 'required|string|max:1000',
     ]);
 
-    $club->update([
+    $dossier->update([
         'note_admin' => $request->note_admin,
     ]);
 

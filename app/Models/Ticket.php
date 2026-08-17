@@ -16,6 +16,9 @@ class Ticket extends Model
         'seat_type_id',
         'buyer_name',
         'buyer_phone',
+        'email',
+        'identity_number',
+        'age',
         'qr_code',
         'status',
         'payment_id',
@@ -29,5 +32,10 @@ class Ticket extends Model
     public function seatType()
     {
         return $this->belongsTo(SeatType::class, 'seat_type_id');
+    }
+
+    public function payment()
+    {
+        return $this->belongsTo(Payment::class, 'payment_id');
     }
 }

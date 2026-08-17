@@ -133,6 +133,14 @@
 
         <div class="col-md-4">
             <div class="dash-card">
+                <h5>👶 أبنائي</h5>
+                <p class="text-muted">إدارة ملفات أبنائك وحجوزاتهم</p>
+                <a href="{{ route('children.index') }}" class="btn btn-main btn-sm">إدارة الأبناء</a>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="dash-card">
                 <h5>⭐ النشاطات المتاحة</h5>
                 <p class="text-muted">تصفح وقم بالحجز</p>
                 <a href="{{ route('activities.index') }}" class="btn btn-main btn-sm">أستكشف النشاطات المتاحة</a>

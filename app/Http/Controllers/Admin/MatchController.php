@@ -84,16 +84,40 @@ public function selectSeat($match_id)
         ->with('seatType')
         ->get();
 
-    // Calculate sold tickets per seat type
-    foreach ($complexSeats as $seat) {
+    $seatData = collect();
 
-      $sold = Ticket::where('match_id', $match_id)
-              ->where('seat_type_id', $seat->seat_type_id)
-              ->count();
+    if ($complexSeats->isEmpty()) {
+        $seatTypes = SeatType::all();
+        foreach ($seatTypes as $st) {
+            $seatData->push((object)[
+                'seat_type_id'   => $st->id,
+                'seatType'       => $st,
+                'total_seats'    => 0,
+                'available_seats'=> 0,
+                'remaining'      => -1,
+            ]);
+        }
+    } else {
+        foreach ($complexSeats as $seat) {
+            $sold = Ticket::where('match_id', $match_id)
+                    ->where('seat_type_id', $seat->seat_type_id)
+                    ->whereIn('status', ['reserved', 'paid', 'checked_in'])
+                    ->count();
 
-        $total = $seat->total_seats ?? $seat->available_seats ?? 0;
-        $seat->remaining = max(0, $total - $sold);
+            $total = ($seat->total_seats ?? 0) > 0 ? $seat->total_seats : ($seat->available_seats ?? 0);
+            $remaining = max(0, $total - $sold);
+
+            $seatData->push((object)[
+                'seat_type_id'   => $seat->seat_type_id,
+                'seatType'       => $seat->seatType,
+                'total_seats'    => $seat->total_seats,
+                'available_seats'=> $seat->available_seats,
+                'remaining'      => $remaining,
+            ]);
+        }
     }
+
+return view('admin.tickets.select-seat', compact('match', 'seatData'));
 //dd($complexSeats) ;
 return view('admin.tickets.select-seat', compact('match', 'complexSeats'));
 }

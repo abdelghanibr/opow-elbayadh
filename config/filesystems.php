@@ -44,6 +44,19 @@ return [
             'throw' => false,
         ],
 
+        'web' => [
+            'driver' => 'ftp',
+            'host' => env('FTP_HOST', 'ftp.opow-elbayadh.dz'),
+            'port' => env('FTP_PORT', 21),
+            'username' => env('FTP_USERNAME'),
+            'password' => env('FTP_PASSWORD'),
+            'root' => env('PUBLIC_STORAGE_PATH', '/home/opowelba/public_html'),
+            'ssl' => env('FTP_FTPS', false),
+            'timeout' => 30,
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

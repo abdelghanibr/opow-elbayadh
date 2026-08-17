@@ -65,6 +65,10 @@
         <input type="hidden" name="schedule_id" id="schedule_id">
         <input type="hidden" name="season_id" id="season_id" value="{{ $selectedSeasonId }}">
 
+        @if(auth()->user()->type === 'person' && $reservablePersons->isNotEmpty())
+            <input type="hidden" name="person_id" id="person_id" value="{{ $person?->id }}">
+        @endif
+
         {{-- 🧾 معلومات الحجز --}}
         <div class="card shadow-sm rounded-4 mb-4 overflow-hidden">
             <div class="card-body p-4">
@@ -79,7 +83,60 @@
                         <input class="form-control bg-light" value="{{ $typeLabel }}" readonly>
                     </div>
 
-                    @if(auth()->user()->type === 'person')
+                    @if(auth()->user()->type === 'person' && $reservablePersons->isNotEmpty())
+                        <div class="col-12">
+                            <label class="fw-bold small text-muted">👶 احجز باسم (اختر الطفل / الشخص)</label>
+                            <div class="row g-2 mt-1">
+                                @foreach($reservablePersons as $rp)
+                                    @php
+                                        $rpAge = $rp->birth_date ? \Carbon\Carbon::parse($rp->birth_date)->age : null;
+                                        $rpSelected = ($rp->id == ($selectedPerson?->id));
+                                        $rpSexLabel = ($rp->gender === 'F') ? 'أنثى'
+                                            : (($rp->gender === 'H' || $rp->gender === 'M') ? 'ذكر' : '—');
+                                    @endphp
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="person-select-card {{ $rpSelected ? 'active' : '' }} {{ $rp->can_book ? '' : 'not-approved' }}"
+                                             @if($rp->can_book) onclick="selectPerson({{ $rp->id }})" @endif
+                                             role="button" tabindex="0"
+                                             style="cursor: {{ $rp->can_book ? 'pointer' : 'not-allowed' }};">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <strong>{{ $rp->firstname }} {{ $rp->lastname }}</strong>
+                                                <span style="font-size:1.3rem;">{{ ($rp->gender === 'F') ? '👧' : (($rp->gender === 'H' || $rp->gender === 'M') ? '👦' : '👤') }}</span>
+                                            </div>
+                                            <div class="small text-muted mt-1">
+                                                {{ $rpAge !== null ? '🎂 ' . $rpAge . ' سنة' : '' }}
+                                                • {{ $rp->ageCategory->name ?? 'بدون فئة' }}
+                                                • ⚥ {{ $rpSexLabel }}
+                                            </div>
+                                            <div class="mt-2">
+                                                @if(!$rp->can_book)
+                                                    <span class="badge bg-warning text-dark">⚠ الملف غير مصادق عليه</span>
+                                                @elseif($rpSelected)
+                                                    <span class="badge bg-success">✔ تم الاختيار</span>
+                                                @else
+                                                    <span class="badge bg-light text-dark border">انقر للاختيار</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        @if($selectedPerson)
+                            <div class="col-md-6">
+                                <label class="fw-bold small text-muted">🎯 الفئة العمرية المختارة</label>
+                                <input class="form-control bg-light fw-bold"
+                                       value="{{ $selectedPerson->ageCategory->name ?? 'غير محدد' }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="fw-bold small text-muted">⚥ الجنس المختار</label>
+                                <input class="form-control bg-light fw-bold"
+                                       value="{{ $selectedPerson->gender === 'F' ? 'أنثى'
+                                            : (($selectedPerson->gender === 'H' || $selectedPerson->gender === 'M') ? 'ذكر' : '—') }}" readonly>
+                            </div>
+                        @endif
+                    @elseif(auth()->user()->type === 'person')
                         <div class="col-md-6">
                             <label class="fw-bold small text-muted">🎯 الفئة العمرية</label>
                             <input class="form-control bg-light" value="{{ $ageCategoryName ?? 'غير محدد' }}" readonly>
@@ -99,6 +156,7 @@
         </div>
 
         {{-- 📋 الجداول المتاحة --}}
+        @if(auth()->user()->type !== 'person' || ($selectedPerson && $selectedPerson->can_book))
         <div class="card shadow-sm rounded-4 mb-5 overflow-hidden">
             <div class="card-body p-4">
                 <h5 class="fw-bold text-secondary mb-4">📋 اختر الفوج المناسب لك</h5>
@@ -195,6 +253,11 @@
                 @endif
             </div>
         </div>
+        @elseif(auth()->user()->type === 'person' && $selectedPerson && !$selectedPerson->can_book)
+            <div class="alert alert-warning text-center fw-bold rounded-4 mb-5">
+                ⚠️ ملف هذا الشخص غير مصادق عليه بعد. يرجى انتظار المصادقة قبل اختيار الفوج.
+            </div>
+        @endif
     </form>
 
     {{-- Modal اختيار الموسم --}}
@@ -252,6 +315,25 @@
         font-weight: 800;
         font-size: 1.1rem;
     }
+    .person-select-card {
+        border: 2px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: #fff;
+        transition: all 0.2s ease;
+        height: 100%;
+    }
+    .person-select-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 18px rgba(0,0,0,0.1);
+    }
+    .person-select-card.active {
+        border: 3px solid #0d6efd;
+        background: #f0f7ff;
+    }
+    .person-select-card.not-approved {
+        opacity: 0.55;
+    }
     @media (max-width: 576px) {
         .price-box {
             font-size: 1rem;
@@ -272,6 +354,14 @@
     document.addEventListener('DOMContentLoaded', function () {
         seasonModal = new bootstrap.Modal(document.getElementById('seasonModal'));
     });
+
+    function selectPerson(personId) {
+        document.getElementById('person_id').value = personId;
+        // recharger la page avec le filtre de la personne choisie
+        const url = new URL(window.location.href);
+        url.searchParams.set('person_id', personId);
+        window.location.href = url.toString();
+    }
 
     function openSeasonPopup(btn) {
         selectedScheduleId = btn.dataset.scheduleId;

@@ -1,24 +1,26 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Reservation;
+use App\Models\Ticket;
+use App\Models\Paiement;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
+
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use App\Models\Payment;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
-use App\Models\ReservationCredit;
 
+use Carbon\Carbon;
+use App\Models\Person;
+use App\Models\ReservationCredit;
+use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
-  
+
 
 public function initiate(Request $request)
 {
@@ -37,7 +39,7 @@ public function initiate(Request $request)
         $captcha = Http::asForm()->post(
             'https://www.google.com/recaptcha/api/siteverify',
             [
-                'secret'   => env('RECAPTCHA_SECRET_KEY'),
+                'secret' => env('RECAPTCHA_SECRET_KEY'),
                 'response' => $request->input('g-recaptcha-response'),
                 'remoteip' => $request->ip(),
             ]
@@ -51,17 +53,10 @@ public function initiate(Request $request)
     }
 
     $reservation = Reservation::findOrFail($request->reservation_id);
+    $amount = (int) round($reservation->total_price);
 
-    // SATIM: استعمل رقم طلب قصير وصالح
-    $orderNumber = str_pad((string) $reservation->id, 4, '0', STR_PAD_LEFT) . substr((string) time(), -6);
-
-    // SATIM غالبًا بالمليم/centimes
-   $amount1 = (int) round($reservation->total_price);
-  
-    $amount = (int) round($amount1 * 100);
-//dd($amount) ;
     $payment = Payment::create([
-        'order_id' => $orderNumber,
+        'order_id' => 'ORD-' . \Str::uuid(),
         'amount'   => $amount,
         'status'   => 'pending',
     ]);
@@ -71,311 +66,277 @@ public function initiate(Request $request)
         'payment_status' => 'pending',
     ]);
 
-    $payload = [
-        'userName'    => config('services.satim.username'),
-        'password'    => config('services.satim.password'),
-        'orderNumber' => $payment->order_id,
-        'amount'      => $amount,
-        'currency'    => '012',
-        'returnUrl'   => route('payment.verify', ['order_number' => $payment->order_id]),
-        'failUrl'     => route('payment.verify', ['order_number' => $payment->order_id]),
-        'description' => 'Paiement réservation ' . config('app.name') . ' #' . $reservation->id,
-        'language'    => 'fr',
-        'jsonParams'  => json_encode([
-            'force_terminal_id' => config('services.satim.terminal_id'),
-            'reservation_id'    => (string) $reservation->id,
-        ], JSON_UNESCAPED_UNICODE),
-    ];
-
-    $response = Http::asForm()
-        ->timeout(30)
-        ->post(config('services.satim.register_url'), $payload);
+    $response = Http::withHeaders([
+        'Accept'        => 'application/json',
+        'Content-Type'  => 'application/json',
+        'x-app-key'     => config('services.guiddini.app_key'),
+        'x-app-secret'  => config('services.guiddini.secret_key'),
+    ])->post('https://epay.guiddini.dz/api/payment/initiate', [
+        'amount'       => $amount,
+        'return_url'   => config('services.guiddini.return_url'),
+        'callback_url' => config('services.guiddini.callback'),
+        'language'     => 'AR',
+    ]);
 
     if (! $response->successful()) {
-        return back()->withErrors([
-            'payment' => 'خطأ في بوابة الدفع SATIM'
-        ]);
+        return back()->withErrors(['payment' => 'خطأ في بوابة الدفع']);
     }
 
     $data = $response->json();
+    $formUrl = data_get($data, 'data.attributes.form_url');
 
-    $errorCode = (string) data_get($data, 'errorCode', '');
-    $errorMessage = data_get($data, 'errorMessage', 'Erreur SATIM');
-    $formUrl = data_get($data, 'formUrl');
-    $satimOrderId = data_get($data, 'orderId');
-
-    if ($errorCode !== '0') {
-        $payment->update([
-            'status'  => 'failed',
-            'payload' => $data,
-        ]);
-
-        $reservation->update([
-            'payment_status' => 'failed',
-        ]);
-
-        return back()->withErrors([
-            'payment' => $errorMessage . ' (code ' . $errorCode . ')'
-        ]);
+    if (! $formUrl) {
+        return back()->withErrors(['payment' => 'رابط الدفع غير متوفر']);
     }
 
     $payment->update([
         'status'  => 'processing',
         'payload' => $data,
-        // إذا لديك هذا العمود أضفه
-        // 'gateway_order_id' => $satimOrderId,
+        'order_id'=> data_get($data, 'data.id')
     ]);
-
-    // إذا لم يكن لديك gateway_order_id خزنه داخل payload فقط
-    if (! $formUrl) {
-        return back()->withErrors([
-            'payment' => 'رابط الدفع SATIM غير متوفر'
-        ]);
-    }
 
     return redirect()->away($formUrl);
 }
+
+
 public function verify(Request $request)
 {
-    $orderNumber  = $request->query('order_number') ?: $request->query('orderNumber');
-    $satimOrderId = $request->query('orderId') ?: $request->query('mdOrder');
+    $orderNumber = $request->query('order_number');
 
-    abort_if(!$orderNumber, 400, 'Missing order number');
+    abort_if(! $orderNumber, 400, 'Missing order number');
 
-    // 1) Paiement local
     $payment = Payment::where('order_id', $orderNumber)->firstOrFail();
 
-    // 2) Réservation + utilisateur
+    $response = Http::withHeaders([
+        'Accept'       => 'application/json',
+        'x-app-key'    => config('services.guiddini.app_key'),
+        'x-app-secret' => config('services.guiddini.secret_key'),
+    ])->get('https://epay.guiddini.dz/api/payment/show', [
+        'order_number' => $orderNumber,
+    ]);
+
     $reservation = Reservation::where('payment_id', $payment->id)->first();
-    $user = optional($reservation)->user ?? auth()->user();
+    $ticket = $reservation ? null : Ticket::where('payment_id', $payment->id)->with(['match.homeTeam', 'match.awayTeam', 'seatType'])->first();
+    $user = optional($reservation)->user ?? optional($ticket)->buyer_name ?? auth()->user();
 
-    // 3) Récupérer orderId SATIM depuis le payload sauvegardé si absent dans l’URL
-    $savedPayload = is_array($payment->payload)
-        ? $payment->payload
-        : (json_decode($payment->payload ?? '[]', true) ?: []);
-
-    if (!$satimOrderId) {
-        $satimOrderId = data_get($savedPayload, 'orderId');
-    }
-
-    // 4) Appel acknowledgeTransaction.do
-    $ackPayload = [
-        'userName' => config('services.satim.username'),
-        'password' => config('services.satim.password'),
-    ];
-
-    if ($satimOrderId) {
-        $ackPayload['orderId'] = $satimOrderId;
-    } else {
-        $ackPayload['orderNumber'] = $payment->order_id;
-    }
-
-    $response = Http::asForm()
-        ->timeout(30)
-        ->post(config('services.satim.ack_url'), $ackPayload);
-
-    Log::info('SATIM acknowledge response', [
-        'request_query' => $request->all(),
-        'ack_payload'   => $ackPayload,
-        'http_status'   => $response->status(),
-        'header_date'   => $response->header('Date'),
-        'body'          => $response->body(),
-        'json'          => $response->json(),
-    ]);
-
-    // 5) Si erreur HTTP
     if (! $response->successful()) {
-        return view('payments.result', [
-            'payment'       => $payment,
-            'reservation'   => $reservation,
-            'user'          => $user,
-            'status'        => 'pending',
-            'action'        => 'Échec de vérification SATIM',
-            'order_id'      => $satimOrderId ?: $payment->order_id,
-            'approval_code' => null,
-            'auth_response' => null,
-            'satim_data'    => [],
-        ]);
+        $view = $ticket ? 'payments.ticket-result' : 'payments.result';
+        $data = $ticket
+            ? ['payment' => $payment, 'ticket' => $ticket, 'status' => 'pending', 'action' => 'Échec de vérification', 'ticketData' => ['full_name' => $ticket->buyer_name ?? '', 'phone' => $ticket->buyer_phone ?? '', 'email' => null], 'orderNumber' => $orderNumber]
+            : ['payment' => $payment, 'reservation' => $reservation, 'user' => $user, 'status' => 'pending', 'orderNumber' => $orderNumber];
+        return view($view, $data);
     }
 
-    $data = $response->json();
+    $status = data_get($response->json(), 'data.attributes.status');
+    $paidAt = data_get($response->json(), 'data.attributes.updated_at');
 
-    // 6) Si JSON invalide
-    if (!is_array($data)) {
-        return view('payments.result', [
-            'payment'       => $payment,
-            'reservation'   => $reservation,
-            'user'          => $user,
-            'status'        => 'pending',
-            'action'        => 'Réponse SATIM invalide',
-            'order_id'      => $satimOrderId ?: $payment->order_id,
-            'approval_code' => null,
-            'auth_response' => null,
-            'satim_data'    => [],
-        ]);
-    }
+    $respDesc = data_get($response->json(), 'data.attributes.params.respCode_desc');
+    $action = data_get(
+        $response->json(),
+        'data.attributes.action_code_description'
+    );
+ $action = $respDesc ?: $action;
+   if (preg_match('/your\s+payment\s+was\s+accepted/i', $action)) {
+    $action = 'Your payment was accepted';}
+    
+//dd($action,$respDesc );
+    $order_id = data_get($response->json(), 'data.attributes.order_id');
+    $approval_code = data_get($response->json(), 'data.attributes.approval_code')
+        ?: data_get($response->json(), 'data.attributes.auth_code');
 
-    // 7) Lecture des champs SATIM
-    $errorCode     = (string) data_get($data, 'ErrorCode', '');
-    $errorMessage  = data_get($data, 'ErrorMessage', '');
-    $actionCode    = (string) data_get($data, 'actionCode', '');
-    $action        = data_get($data, 'actionCodeDescription', $errorMessage);
-    $orderStatus   = (string) data_get($data, 'OrderStatus', '');
-    $approvalCode  = data_get($data, 'approvalCode');
-    $authResponse  = data_get($data, 'authorizationResponseId');
-
-    // 8) Déterminer si paiement accepté
-    $isSuccess =
-        $errorCode === '0' &&
-        $actionCode === '0' &&
-        $orderStatus === '2';
-
-    // 9) Date opération SATIM
-    // SATIM ne renvoie pas de date claire dans le JSON, donc on prend le header Date
-    $headerDate = $response->header('Date');
-
-    if ($headerDate) {
+    $updatedAt = now();
+    if (!empty($paidAt)) {
         try {
-            $operationDate = Carbon::parse($headerDate)
+            $updatedAt = Carbon::parse($paidAt)
                 ->setTimezone(config('app.timezone'));
-        } catch (\Throwable $e) {
-            $operationDate = now();
+        } catch (\Exception $e) {
+            logger()->warning('Invalid paidAt', ['paidAt'=>$paidAt]);
         }
-    } else {
-        $operationDate = now();
     }
 
-    // 10) Sauvegarde paiement
     $payment->update([
-        'status'        => $isSuccess ? 'success' : 'failed',
-        'payload'       => $data,
-        'datetimesatim' => $operationDate,
-        'updated_at'    => now(),
+        'payload' => $response->json(),
+        'updated_at'   => $paidAt,
+        'datetimesatim'  => $updatedAt ,
     ]);
 
-    // 11) Sauvegarde réservation
+    $isSuccess = in_array($status, ['succeeded', 'paid']);
+
+    $payment->update([
+        'status' => $isSuccess ? 'success' : 'failed',
+        'updated_at' => $paidAt,
+        'datetimesatim' => $updatedAt,
+    ]);
+
     if ($reservation) {
         $reservation->update([
-            'payment_id'     => $payment->id,
+            'payment_id' => $payment->id,
             'payment_status' => $isSuccess ? 'paid' : 'failed',
-            'statut'         => $isSuccess ? 'confirmee' : $reservation->statut,
-            'updated_at'     => now(),
+            'statut' => 'confirmee',
+            'updated_at' => $paidAt,
         ]);
+
+        if ($isSuccess && !empty($reservation->user_id)) {
+            Person::where('user_id', $reservation->user_id)
+                ->update([
+                    'etat_ass'   => 0,
+                    'updated_at' => now(),
+                    'assured_expires_on'=> now(),
+                ]);
+
+            $this->applyPendingCreditsAfterSuccessfulPayment($reservation);
+        }
+    } elseif ($ticket) {
+        if ($isSuccess) {
+            $qrPayload = json_encode([
+                'id' => $ticket->id,
+                'm'  => $ticket->match->homeTeam->name . ' vs ' . $ticket->match->awayTeam->name,
+                's'  => $ticket->seatType->name,
+                'b'  => $ticket->buyer_name,
+                'p'  => $ticket->buyer_phone,
+                'a'  => $ticket->seatType->price,
+                'o'  => $payment->order_id,
+                'd'  => $ticket->match->match_date,
+                't'  => $ticket->match->match_time,
+            ], JSON_UNESCAPED_UNICODE);
+
+            $ticket->update([
+                'status'  => 'paid',
+                'qr_code' => $qrPayload,
+            ]);
+        } else {
+            $ticket->update(['status' => 'cancelled']);
+        }
     }
 
+    $view = $ticket ? 'payments.ticket-result' : 'payments.result';
+    $viewData = $ticket
+        ? [
+            'payment'    => $payment,
+            'ticket'     => $ticket,
+            'status'     => $isSuccess ? 'success' : 'failed',
+            'action'     => $action,
+            'ticketData' => ['full_name' => $ticket->buyer_name ?? '', 'phone' => $ticket->buyer_phone ?? '', 'email' => null],
+            'orderNumber'=> $orderNumber,
+          ]
+        : [
+            'payment'      => $payment,
+            'reservation'  => $reservation,
+            'user'         => $user,
+            'status'       => $isSuccess ? 'success' : 'failed',
+            'action'       => $action,
+            'order_id'     => $order_id,
+            'approval_code'=> $approval_code,
+            'orderNumber'  => $orderNumber,
+          ];
 
-
-if ($isSuccess) {
-        $this->applyPendingCreditsAfterSuccessfulPayment($reservation);
-   }
-    // 12) Retour vue résultat
-    return view('payments.result', [
-        'payment'       => $payment,
-        'reservation'   => $reservation,
-        'user'          => $user,
-        'status'        => $isSuccess ? 'success' : 'failed',
-        'action'        => $action ?: $errorMessage,
-        'order_id'      => $satimOrderId ?: $payment->order_id,
-        'approval_code' => $approvalCode,
-        'auth_response' => $authResponse,
-        'satim_data'    => $data,
-    ]);
+    return view($view, $viewData);
 }
-
 
 
 public function downloadReceipt($orderId)
 {
     $payment = Payment::where('order_id', $orderId)->firstOrFail();
-    $reservation = Reservation::where('payment_id', $payment->id)->first();
-    $user = optional($reservation)->user;
 
-    $satimData = is_array($payment->payload)
-        ? $payment->payload
-        : (json_decode($payment->payload ?? '[]', true) ?: []);
+    if ($payment->receipt_url) {
+        return redirect()->away($payment->receipt_url);
+    }
 
-    $pdf = Pdf::loadView('payments.receipt_pdf', [
-        'payment'     => $payment,
-        'reservation' => $reservation,
-        'user'        => $user,
-        'satim_data'  => $satimData,
+    $response = Http::withHeaders([
+        'Accept'       => 'application/json',
+        'Content-Type' => 'application/json',
+        'x-app-key'    => config('services.guiddini.app_key'),
+        'x-app-secret' => config('services.guiddini.secret_key'),
+    ])->get('https://epay.guiddini.dz/api/payment/receipt', [
+        'order_number' => $orderId
     ]);
 
-    return $pdf->download('recu-paiement-' . $payment->order_id . '.pdf');
+    if (! $response->successful()) {
+        return back()->with('error', 'تعذر تحميل الوصل');
+    }
+
+    $contentType = $response->header('Content-Type', '');
+
+    if (str_contains($contentType, 'application/pdf')) {
+        return response($response->body())
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="recu-satim-'.$orderId.'.pdf"');
+    }
+
+    $data = $response->json() ?: [];
+
+    $pdfUrl = data_get($data, 'links.href')
+        ?: data_get($data, 'data.receipt_url')
+        ?: data_get($data, 'receipt_url')
+        ?: data_get($data, 'data.url');
+
+    if (! $pdfUrl) {
+        return back()->with('error', 'رابط الوصل غير متوفر');
+    }
+
+    $payment->update([
+        'receipt_url' => $pdfUrl
+    ]);
+
+    return redirect()->away($pdfUrl);
 }
+
 
 public function sendReceiptEmail(Request $request, $orderId)
 {
-    try {
-        $request->validate([
-            'email'    => ['required', 'email'],
-            'pdf_file' => ['required', 'file', 'mimes:pdf', 'max:10240'], // 10 MB
-        ]);
 
-        $payment = Payment::where('order_id', $orderId)->firstOrFail();
+    $email = $request->input('email');
 
-        $email = $request->input('email');
-        $pdfFile = $request->file('pdf_file');
-
-        if (!$pdfFile || !$pdfFile->isValid()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Fichier PDF invalide'
-            ], 422);
+    if (! $email) {
+        if ($request->ajax()) {
+            return response()->json(['success' => false, 'message' => 'البريد غير متوفر']);
         }
-
-        $pdfBinary = file_get_contents($pdfFile->getRealPath());
-
-        \Mail::raw('Veuillez trouver ci-joint votre reçu de paiement ' . config('app.name') . '.', function ($message) use ($email, $payment, $pdfBinary) {
-            $message->to($email)
-                ->subject('Reçu de paiement - ' . $payment->order_id)
-                ->attachData(
-                    $pdfBinary,
-                    'recu-paiement-' . $payment->order_id . '.pdf',
-                    ['mime' => 'application/pdf']
-                );
-        });
-
-        return response()->json([
-            'success' => true,
-            'message' => 'تم إرسال الوصل إلى البريد: ' . $email
-        ]);
-
-    } catch (\Throwable $e) {
-        \Log::error('sendReceiptEmail failed', [
-            'order_id' => $orderId,
-            'message'  => $e->getMessage(),
-            'trace'    => $e->getTraceAsString(),
-        ]);
-
-        return response()->json([
-            'success' => false,
-            'message' => 'فشل إرسال الوصل بالبريد',
-            'error'   => $e->getMessage(),
-        ], 500);
+        return back()->with('error', 'البريد غير متوفر');
     }
+
+    $response = Http::withHeaders([
+        'Accept'       => 'application/json',
+        'Content-Type' => 'application/json',
+        'x-app-key'    => config('services.guiddini.app_key'),
+        'x-app-secret' => config('services.guiddini.secret_key'),
+    ])->post('https://epay.guiddini.dz/api/payment/email', [
+        'order_number' => $orderId,
+        'email'        => $email
+    ]);
+
+    if (! $response->successful()) {
+        if ($request->ajax()) {
+            return response()->json(['success' => false, 'message' => 'فشل إرسال الوصل بالبريد']);
+        }
+        return back()->with('error', 'فشل إرسال الوصل بالبريد');
+    }
+
+    if ($request->ajax()) {
+        return response()->json(['success' => true, 'message' => 'تم إرسال الوصل إلى البريد: '.$email]);
+    }
+
+    return back()->with('success', 'تم إرسال الوصل إلى البريد: '.$email);
 }
 
-    public function pay(Reservation $reservation)
+public function pay(Reservation $reservation)
     {
         if ((int)$reservation->user_id !== (int)Auth::id()) {
             abort(403, 'غير مصرح لك بالدفع لهذا الحجز');
         }
 
         if ($reservation->payment_status === 'paid') {
-            return back()->with('info', 'ℹ️ هذا الحجز مدفوع بالفعل');
+            return back()->with('info', 'هذا الحجز مدفوع بالفعل');
         }
 
         return view('payments.pay', [
             'reservation' => $reservation
         ]);
     }
-    
-    private function applyPendingCreditsAfterSuccessfulPayment(Reservation $reservation): void
+
+ private function applyPendingCreditsAfterSuccessfulPayment(Reservation $reservation): void
 {
     DB::transaction(function () use ($reservation) {
 
-        // التحقق هل هذا الحجز استعمل من قبل أرصدة تعويضية
         $alreadyUsedForThisReservation = ReservationCredit::where('used_in_reservation_id', $reservation->id)
             ->where('status', 'used')
             ->exists();
@@ -401,4 +362,5 @@ public function sendReceiptEmail(Request $request, $orderId)
             ]);
     });
 }
+
 }

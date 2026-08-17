@@ -57,10 +57,10 @@
             <div class="ticket-frame-header"><i class="fa-solid fa-chair"></i> اختيار نوع المقعد</div>
             <div class="ticket-frame-body">
                 <div class="ticket-seat-grid">
-                    @foreach($complexSeats as $s)
+                    @foreach($seatData as $s)
                         @php
                             $cls = match($s->seatType->name) { 'VIP' => 'vip', 'Premium' => 'premium', 'Basic' => 'basic', default => 'regular' };
-                            $disabled = $s->remaining <= 0;
+                            $disabled = $s->remaining === 0;
                         @endphp
                         <div class="seat-card {{ $cls }} {{ $disabled ? 'disabled-card' : '' }}"
                              data-id="{{ $s->seat_type_id }}"
@@ -76,9 +76,16 @@
                             </div>
                             <div class="seat-name">{{ $s->seatType->name }}</div>
                             <div class="seat-price">{{ number_format($s->seatType->price, 0, ',', ' ') }} دج</div>
+                            <div class="seat-capacity">{{ $s->total_seats ?: '?' }} مقعد</div>
                             <div class="seat-status {{ $disabled ? 'status-no' : 'status-ok' }}">
-                                @if($disabled) <i class="fa-solid fa-xmark-circle"></i> نفدت
-                                @else <i class="fa-solid fa-check-circle"></i> <strong>{{ $s->remaining }}</strong> مقعد متاح @endif
+                                @if($s->remaining < 0)
+                                    <i class="fa-solid fa-circle-question"></i> غير محدد
+                                @elseif($disabled)
+                                    <i class="fa-solid fa-xmark-circle"></i> مكتمل
+                                @else
+                                    <i class="fa-solid fa-check-circle"></i>
+                                    <strong>{{ $s->remaining }}</strong> متبقي
+                                @endif
                             </div>
                         </div>
                     @endforeach
@@ -216,7 +223,8 @@ body { font-family: "Cairo", sans-serif !important; }
 .basic .seat-icon-box { color: #22c55e; }
 
 .seat-name { font-weight: 900; font-size: 1.05rem; color: #082f57; margin-bottom: 6px; }
-.seat-price { font-weight: 800; font-size: 0.95rem; background: #fff; display: inline-block; padding: 4px 14px; border-radius: 10px; border: 2px solid #082f57; color: #082f57; margin-bottom: 8px; }
+.seat-price { font-weight: 800; font-size: 0.95rem; background: #fff; display: inline-block; padding: 4px 14px; border-radius: 10px; border: 2px solid #082f57; color: #082f57; margin-bottom: 6px; }
+.seat-capacity { font-size: 0.75rem; color: #64748b; margin-bottom: 4px; }
 .seat-status { font-size: 0.82rem; font-weight: 700; }
 .status-ok { color: #16a34a; }
 .status-no { color: #dc2626; }

@@ -4,74 +4,118 @@
 <style>
     body {
         font-family: "Cairo", sans-serif !important;
-        background: #f6f8fb;
+        background: #f4f7fb;
     }
 
     .dash-header {
-        background: linear-gradient(135deg, #9d1421, #c32635);
+        background:
+            radial-gradient(circle at top left, rgba(20,184,166,.35), transparent 35%),
+            linear-gradient(135deg, #082f49, #075985);
         color: #fff;
-        border-radius: 18px;
+        border-radius: 28px;
         padding: 28px;
         text-align: center;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        box-shadow: 0 16px 38px rgba(8,47,73,.22);
     }
 
     .dash-card {
+        position: relative;
         display: block;
         height: 100%;
         min-height: 230px;
-        border-radius: 18px;
-        padding: 26px 18px;
-        text-align: center;
-        background: #ffffff;
-        border: 2px solid #e8eef3;
-        transition: .25s ease-in-out;
+        border-radius: 24px;
+        padding: 24px 18px 55px;
+        text-align: right;
+        background: linear-gradient(135deg, #ffffff, #f8fafc);
+        border: 1px solid #e5eaf2;
+        transition: .25s ease;
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-        color: #212529;
+        box-shadow: 0 10px 26px rgba(15,23,42,.07);
+        color: #0f172a;
+        text-decoration: none;
+        overflow: hidden;
+    }
+
+    .dash-card::before {
+        content: "";
+        position: absolute;
+        top: -35px;
+        left: -35px;
+        width: 95px;
+        height: 95px;
+        border-radius: 50%;
+        background: rgba(14,165,233,.10);
+    }
+
+    .dash-card::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(180deg, #0ea5e9, #14b8a6);
     }
 
     .dash-card:hover {
         transform: translateY(-6px);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.13);
-        border-color: #0a4f88;
-        color: #212529;
+        box-shadow: 0 18px 36px rgba(15,23,42,.14);
+        border-color: #38bdf8;
+        color: #075985;
     }
 
     .dash-icon {
-        font-size: 44px;
-        margin-bottom: 12px;
-        line-height: 1;
+        width: 58px;
+        height: 58px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        background: linear-gradient(135deg, #e0f2fe, #f0fdfa);
+        margin-bottom: 14px;
+        position: relative;
+        z-index: 1;
     }
 
     .dash-title {
-        font-weight: 800;
+        font-weight: 900;
         font-size: 16px;
-        margin-bottom: 10px;
-        color: #1f2d3d;
+        margin-bottom: 9px;
+        color: #082f49;
+        position: relative;
+        z-index: 1;
     }
 
     .dash-desc {
         font-size: 13px;
-        color: #6c757d;
-        line-height: 1.7;
-        min-height: 44px;
+        color: #64748b;
+        line-height: 1.8;
         margin-bottom: 12px;
+        position: relative;
+        z-index: 1;
+        font-weight: 700;
     }
 
     .count-box {
-        background: #f1f7fc;
-        padding: 7px 12px;
-        font-size: 14px;
-        margin-top: 10px;
-        border-radius: 10px;
-        font-weight: 700;
-        border: 1px solid #d8e4ef;
-        color: #0a4f88;
-        display: inline-block;
+        position: absolute;
+        left: 16px;
+        bottom: 16px;
+        min-width: 42px;
+        height: 28px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: #eef6ff;
+        color: #075985;
+        font-size: 13px;
+        font-weight: 900;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #dbeafe;
+        z-index: 2;
     }
 </style>
-
 <div class="container py-4" style="direction: rtl; text-align:right;">
 
     <div class="dash-header mb-4">
@@ -201,18 +245,6 @@
             </a>
         </div>
 
-        {{-- الفرق --}}
-        <div class="col-md-3">
-            <a href="{{ route('teams.index') }}" class="dash-card text-decoration-none">
-                <div class="dash-icon">🏆</div>
-                <div class="dash-title">الفرق الرياضية</div>
-                <p class="dash-desc">
-                    إدارة الفرق المشاركة في المباريات وعرض بياناتها وشعارها.
-                </p>
-                <div class="count-box">عدد الفرق: {{ $teamsCount ?? 0 }}</div>
-            </a>
-        </div>
-
         {{-- التذاكر --}}
         <div class="col-md-3">
             <a href="{{ route('tickets.index') }}" class="dash-card text-decoration-none">
@@ -225,15 +257,66 @@
             </a>
         </div>
 
-        {{-- توقيف المنشأة --}}
+
+{{-- تأمين المنخرطين --}}
+<div class="col-md-3">
+    <a href="{{ route('admin.assurances.index') }}" class="dash-card text-decoration-none">
+        <div class="dash-icon">🛡️</div>
+        <div class="dash-title">تأمين المنخرطين</div>
+        <p class="dash-desc">
+            إضافة المنخرطين المؤمنين، متابعة التأمينات النشطة والمنتهية، وطباعة قوائم التأمين.
+        </p>
+        <div class="count-box">
+            عدد التأمينات: {{ \App\Models\PersonAssurance::count() }}
+        </div>
+    </a>
+</div>
+
+        {{-- الفرق --}}
         <div class="col-md-3">
-            <a href="{{ route('admin.pool-closures.index') }}" class="dash-card text-decoration-none">
-                <div class="dash-icon">⚠️</div>
-                <div class="dash-title">توقيف المنشأة</div>
+            <a href="{{ route('teams.index') }}" class="dash-card text-decoration-none">
+                <div class="dash-icon">🤼‍♂️</div>
+                <div class="dash-title">الفرق</div>
                 <p class="dash-desc">
-                    تسجيل أعطال المسبح أو فترات التوقف وعرض الحجوزات المتأثرة وتوليد التعويضات.
+                    إدارة الفرق والأصناف الرياضية الخاصة بالمؤسسة.
                 </p>
-                <div class="count-box">إدارة الأعطال</div>
+                <div class="count-box">عدد الفرق: {{ \App\Models\Team::count() }}</div>
+            </a>
+        </div>
+
+        {{-- فئات العمر --}}
+        <div class="col-md-3">
+            <a href="{{ route('age-categories.index') }}" class="dash-card text-decoration-none">
+                <div class="dash-icon">👶</div>
+                <div class="dash-title">فئات العمر</div>
+                <p class="dash-desc">
+                    ضبط الفئات العمرية المعتمدة لتسجيل المنخرطين.
+                </p>
+                <div class="count-box">عدد الفئات: {{ \App\Models\AgeCategory::count() }}</div>
+            </a>
+        </div>
+
+        {{-- حساب بدون ملف (محدود بمجمع هذا المدير) --}}
+        <div class="col-md-3">
+            <a href="{{ route('admin.accounts.no-dossier') }}" class="dash-card text-decoration-none">
+                <div class="dash-icon">🚫</div>
+                <div class="dash-title">حسابات بدون ملف</div>
+                <p class="dash-desc">
+                    حذف الحسابات المسجلة في هذا المجمع ولم تُقدّم أي ملف — فردي أو جماعي.
+                </p>
+                <div class="count-box">العدد: {{ $noDossierAccountsCount ?? 0 }}</div>
+            </a>
+        </div>
+
+        {{-- البرنامج الأسبوعي للمنشأة --}}
+        <div class="col-md-3">
+            <a href="{{ route('admin.complex.programme', $complex->id) }}" class="dash-card text-decoration-none">
+                <div class="dash-icon">📅</div>
+                <div class="dash-title">البرنامج الأسبوعي للمنشأة</div>
+                <p class="dash-desc">
+                    عرض الأفواج النشطة في أسبوع واحد محدد، مع توقيت كل حصة وعدد الحجوزات لكل فوج.
+                </p>
+                <div class="count-box">أفواج نشطة: {{ $activeGroupsCount ?? 0 }}</div>
             </a>
         </div>
 

@@ -52,7 +52,7 @@ use App\Http\Controllers\Admin\DeviceController;
 
 use App\Http\Controllers\Api\RemotePersonController;
 
-use App\Http\Controllers\PoolClosureController;
+// PoolClosureController removed — routes commented out below
 
 
 
@@ -173,11 +173,29 @@ Route::get('/tickets/select-seat/{id}', [MatchController::class, 'selectSeat'])
 Route::post('/tickets/confirm-pay', [\App\Http\Controllers\TicketPaymentController::class, 'confirmAndPay'])
     ->name('ticket.confirm.pay');
 
+Route::get('/tickets/pay', [\App\Http\Controllers\TicketPaymentController::class, 'showTicketPay'])
+    ->name('ticket.pay.show');
+
 Route::post('/tickets/payment/initiate', [\App\Http\Controllers\TicketPaymentController::class, 'initiatePayment'])
     ->name('ticket.payment.initiate');
 
 Route::get('/tickets/payment/verify', [\App\Http\Controllers\TicketPaymentController::class, 'verify'])
     ->name('ticket.payment.verify');
+
+Route::get('/tickets/print/{id}', [\App\Http\Controllers\TicketPaymentController::class, 'printTicket'])
+    ->name('ticket.print');
+
+Route::get('/tickets/result/{id}', [\App\Http\Controllers\TicketPaymentController::class, 'showResult'])
+    ->name('ticket.show-result');
+
+Route::post('/tickets/receipt/email/{id}', [\App\Http\Controllers\TicketPaymentController::class, 'sendTicketReceiptEmail'])
+    ->name('ticket.receipt.email');
+
+Route::get('/tickets/verify-qr', [\App\Http\Controllers\TicketPaymentController::class, 'showVerifyQR'])
+    ->name('ticket.verify-qr');
+
+Route::post('/tickets/check-qr', [\App\Http\Controllers\TicketPaymentController::class, 'checkQR'])
+    ->name('ticket.check-qr');
 
 Route::post('/tickets/confirm', [TicketController::class, 'confirm'])
     ->name('tickets.confirm');
@@ -231,7 +249,10 @@ Route::get('/person/login', [PersonAuthController::class, 'showLogin'])->name('p
 Route::post('/person/login', [PersonAuthController::class, 'login'])->name('person.login.post');
 Route::get('/person/register', [PersonAuthController::class, 'showRegister'])->name('person.register');
 Route::post('/person/register', [PersonAuthController::class, 'register'])->name('person.register.post');
-Route::get('/person/dashboard', fn()=>view('person.dashboard'))->middleware('auth')->name('person.dashboard');
+
+// Check Email (AJAX)
+Route::get('/person/check-email', [PersonAuthController::class, 'checkEmail'])->name('person.check-email');
+Route::get('/auth/check-email', [PersonAuthController::class, 'checkEmail'])->name('auth.check-email');
 
 // Logout Person
 Route::post('/person/logout', function () {
@@ -291,13 +312,19 @@ Route::get('/person/profile/edit', [RegisterController::class, 'edit'])->name('p
  Route::put('/person/profile/update', [RegisterController::class, 'update'])
         ->name('person.profile.update');
 
+    // Children
+    Route::get('/person/children', [ProfileController::class, 'children'])->name('children.index');
+    Route::post('/person/children', [ProfileController::class, 'storeChild'])->name('children.store');
+    Route::get('/person/children/{person}/edit', [ProfileController::class, 'editChild'])->name('children.edit');
+    Route::get('/person/children/{person}/reserve', [ProfileController::class, 'reserveChild'])->name('children.reserve');
+
 Route::get('/dossier/{dossier}/print', 
     [DossierController::class, 'print'])
     ->name('dossier.print');
     
  
      
-Route::get('/forms/formulaire/{id}/download', [FormController::class, 'downloadFormulaire'])
+Route::get('/forms/formulaire/{id}/download', [DossierController::class, 'downloadFormulaire'])
     ->name('forms.formulaire.download');
 
 Route::get('/dossiers/{id}/autorisation-parentale/download', [DossierController::class, 'downloadAutorisationParentale'])
@@ -417,6 +444,8 @@ Route::middleware(['auth','admin'])->group(function () {
 
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
 
+    // PoolClosureController routes removed — controller does not exist
+    /*
     Route::get('/pool-closures', [PoolClosureController::class, 'index'])
         ->name('pool-closures.index');
 
@@ -440,6 +469,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     Route::post('/pool-closures/{poolClosure}/apply', [PoolClosureController::class, 'apply'])
         ->name('pool-closures.apply');
+    */
 
     // ---------------------------
     //         SETTINGS
@@ -458,7 +488,9 @@ Route::post('/reservations/{reservation}/toggle-payment',
     [ReservationController::class, 'togglePayment'])
     ->name('reservations.togglePayment');
 
-
+// Check Season (AJAX)
+Route::get('/reservations/{id}/check-season/{seasonId}', [ReservationController::class, 'checkSeason'])
+    ->name('reservations.check-season');
 
      Route::resource('devices', DeviceController::class);
 
@@ -542,8 +574,6 @@ Route::get('/admin/schedules/occupied-slots', [\App\Http\Controllers\Admin\Sched
     Route::get('admins/edit/{id}', [AdminController::class, 'adminsEdit'])->name('admins.edit');
     Route::post('admins/update/{id}', [AdminController::class, 'adminsUpdate'])->name('admins.update');
     Route::delete('admins/delete/{id}', [AdminController::class, 'adminsDelete'])->name('admins.delete');
-   
-    Route::get('/admin/dashboard', fn()=>view('admin.dashboard'))->name('admin.dashboard');
 
     //dossier et validation
     Route::get('/admin/dossiers', [DossierController::class, 'index'])->name('admin.dossiers.index');
@@ -562,6 +592,8 @@ Route::get('/admin/schedules/occupied-slots', [\App\Http\Controllers\Admin\Sched
         ->name('admin.clubs.reject');
 
 Route::post('admin/clubs/{id}/note', [ClubController::class, 'note'])->name('admin.clubs.note');
+
+Route::delete('/admin/clubs/{id}', [ClubController::class, 'destroy'])->name('admin.clubs.destroy');
 
 //activite et complex et pricing pla 
 // gestion des activités
@@ -649,6 +681,22 @@ Route::resource('/admin/age-categories', AgeCategoryController::class);
  Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])
     ->middleware('auth')
     ->name('admin.dashboard');
+
+    // Assurances
+    Route::get('/admin/assurances', [\App\Http\Controllers\Admin\PersonAssuranceController::class, 'index'])->name('admin.assurances.index');
+    Route::get('/admin/assurances/data', [\App\Http\Controllers\Admin\PersonAssuranceController::class, 'data'])->name('admin.assurances.data');
+    Route::get('/admin/assurances/candidates-data', [\App\Http\Controllers\Admin\PersonAssuranceController::class, 'candidatesData'])->name('admin.assurances.candidates-data');
+    Route::post('/admin/assurances/store-selected', [\App\Http\Controllers\Admin\PersonAssuranceController::class, 'storeSelected'])->name('admin.assurances.store-selected');
+    Route::post('/admin/assurances/bulk-assure', [\App\Http\Controllers\Admin\PersonAssuranceController::class, 'bulkAssure'])->name('admin.assurances.bulk-assure');
+    Route::post('/admin/assurances/print-selected', [\App\Http\Controllers\Admin\PersonAssuranceController::class, 'printSelected'])->name('admin.assurances.print-selected');
+
+    // Accounts without dossiers
+    Route::get('/admin/accounts-without-dossiers', [AdminController::class, 'accountsWithoutDossiers'])->name('admin.accounts.no-dossier');
+    Route::delete('/admin/accounts-without-dossiers/delete-all', [AdminController::class, 'destroyAllOrphanAccounts'])->name('admin.accounts.destroy-all');
+    Route::delete('/admin/accounts-without-dossiers/{user}', [AdminController::class, 'destroyOrphanAccount'])->name('admin.accounts.destroy')->whereNumber('user');
+
+    // Weekly programme
+    Route::get('/admin/complex/{id}/programme-hebdo', [AdminController::class, 'programmeHebdo'])->name('admin.complex.programme');
 
 });
 

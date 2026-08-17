@@ -193,4 +193,15 @@ $request->validate([
         Auth::logout();
         return redirect()->route('person.login');
     }
+
+    public function checkEmail(Request $request)
+    {
+        $email = strtolower(trim($request->input('email', '')));
+
+        $exists = $email
+            ? User::whereRaw('LOWER(email) = ?', [$email])->exists()
+            : false;
+
+        return response()->json(['available' => !$exists]);
+    }
 }

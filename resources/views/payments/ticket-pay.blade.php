@@ -114,6 +114,22 @@
                         <div class="ticket-price-note">شامل جميع الرسوم</div>
                     </div>
 
+                    {{-- ERRORS --}}
+                    @if($errors->any() || session('error'))
+                        <div style="background:#fef2f2; border:2px solid #fca5a5; border-radius:14px; padding:14px 18px; margin-bottom:18px;">
+                            @foreach($errors->all() as $error)
+                                <div style="color:#dc2626; font-weight:700; font-size:0.9rem; margin-bottom:4px;">
+                                    <i class="fa-solid fa-circle-xmark"></i> {{ $error }}
+                                </div>
+                            @endforeach
+                            @if(session('error'))
+                                <div style="color:#dc2626; font-weight:700; font-size:0.9rem; margin-bottom:4px;">
+                                    <i class="fa-solid fa-circle-xmark"></i> {{ session('error') }}
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+
                     {{-- CIB INFO --}}
                     <div class="ticket-cib-info">
                         <img src="{{ asset('images/cib.png') }}" alt="CIB" class="ticket-cib-logo">
@@ -181,7 +197,7 @@
 
                         <div class="ticket-pay-note">
                             <i class="fa-solid fa-circle-info"></i>
-                            سيتم تحويلك إلى صفحة الدفع الآمنة SATIM
+                            سيتم تحويلك إلى صفحة الدفع الآمنة
                         </div>
                     </form>
 

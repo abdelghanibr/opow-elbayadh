@@ -25,7 +25,8 @@ class Reservation extends Model
         'duration_hours',   // مجموع الساعات في الموسم
         'total_price',      // السعر الكلي
         'status',  
-        'pricing_plan_id'   , 'schedule_id' ,  'statut' ,'payment_status','qty_places' ,'end_date' ,'start_time' , 'end_time' ,  'payment_id', 'assured_on',
+        'pricing_plan_id'   , 'schedule_id' ,  'statut' ,'payment_status','qty_places' ,'end_date' ,'start_time' , 'end_time' ,          'person_id',
+        'payment_id', 'assured_on',
     'assured_by'  // Pending / Confirmed / Rejected
 
 

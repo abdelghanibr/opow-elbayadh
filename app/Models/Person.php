@@ -9,6 +9,9 @@ class Person extends Model
     protected $table = 'persons';
    protected $fillable = [
     'user_id',
+    'parent_id',
+    'guardian_docs',
+    'complex_id',
     'firstname',
     'lastname',
     'birth_date',
@@ -33,20 +36,45 @@ class Person extends Model
     'parent_relation',
     'age_category_id',
     'club_id','license_number' ,'tuteur_fullname'
-
-
-     
-    //'entreprise_id'
 ];
+
+    protected $casts = [
+        'guardian_docs' => 'array',
+    ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    public function parent()
+    {
+        return $this->belongsTo(Person::class, 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(Person::class, 'parent_id');
+    }
+
+    public function isChild(): bool
+    {
+        return !empty($this->parent_id);
+    }
+
+    public function ownerUser()
+    {
+        return $this->user ?: optional($this->parent)->user;
+    }
+
     public function club()
     {
         return $this->belongsTo(Club::class);
+    }
+
+    public function complex()
+    {
+        return $this->belongsTo(Complex::class, 'complex_id');
     }
 
     public function ageCategory()

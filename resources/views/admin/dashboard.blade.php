@@ -387,6 +387,10 @@ body {
     .quick-grid {
         grid-template-columns: repeat(3, 1fr);
     }
+
+    .dashboard-complex-grid {
+        grid-template-columns: 1fr !important;
+    }
 }
 
 @media (max-width: 768px) {
@@ -472,7 +476,6 @@ body {
 
     <a href="{{ route('events.index') }}" class="tv-side-link" title="الفعاليات">📅</a>
 
-    <a href="{{ route('admin.pool-closures.index') }}" class="tv-side-link" title="توقيف المنشأة">⚠️</a>
 </aside>
     <main class="tv-main">
 
@@ -485,6 +488,12 @@ body {
             <div class="tv-user">
                 👤 {{ Auth::user()->name }}
             </div>
+        </div>
+
+        {{-- Welcome Card --}}
+        <div style="background: linear-gradient(135deg, #075985, #18a8c7); color: #fff; border-radius: 8px; padding: 18px 22px; margin-bottom: 10px; box-shadow: 0 6px 18px rgba(7,89,133,.22);">
+            <h5 style="font-weight: 900; margin-bottom: 4px;">مرحباً {{ Auth::user()->name }} 👋</h5>
+            <p style="color: #b8e6f0; margin: 0; font-size: 13px;">إدارة الملفات، المنشآت، التسجيلات، الحجوزات، التذاكر والإحصائيات — {{ config('app.name') }}</p>
         </div>
 
         {{-- KPI Cards --}}
@@ -649,86 +658,199 @@ body {
 
         </div>
 
-        {{-- Quick menu --}}
-        <div class="quick-grid">
+        {{-- ===== Complex Stats ===== --}}
+        <div class="dashboard-complex-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-top: 8px;">
+            <div class="tv-panel">
+                <div class="tv-panel-title">
+                    إحصائيات الحجوزات حسب المنشأة
+                    <span>{{ $complexStats->count() }} منشأة</span>
+                </div>
+                <div class="chart-large">
+                    <canvas id="complexReservationsChart"></canvas>
+                </div>
+            </div>
+            <div class="tv-panel">
+                <div class="tv-panel-title">
+                    نسبة المنخرطين حسب الجنس
+                    <span>{{ $totalAgeRegistrations ?? 0 }} منخرط</span>
+                </div>
+                <div class="chart-large">
+                    <canvas id="genderChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        {{-- Complex Details Table --}}
+        <div class="tv-panel" style="margin-top: 8px;">
+            <div class="tv-panel-title">
+                تفاصيل المنشآت
+                <span>{{ $complexStats->count() }} منشأة</span>
+            </div>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; font-size: 12px; font-weight: 700; border-collapse: collapse;">
+                    <thead style="background: #f1f5f9;">
+                        <tr>
+                            <th style="padding: 8px; text-align: right;">المنشأة</th>
+                            <th style="padding: 8px; text-align: center;">المنخرطون</th>
+                            <th style="padding: 8px; text-align: center;">الحجوزات</th>
+                            <th style="padding: 8px; text-align: center;">ملفات مقبولة</th>
+                            <th style="padding: 8px; text-align: center;">المبالغ المدفوعة (دج)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($complexStats as $cs)
+                        <tr style="border-bottom: 1px solid #edf2f7;">
+                            <td style="padding: 8px;">{{ $cs->nom }}</td>
+                            <td style="padding: 8px; text-align: center;">{{ number_format($cs->subscribers) }}</td>
+                            <td style="padding: 8px; text-align: center;">{{ number_format($cs->reservations) }}</td>
+                            <td style="padding: 8px; text-align: center;">{{ number_format($cs->approved) }}</td>
+                            <td style="padding: 8px; text-align: center;">{{ number_format($cs->paidAmount, 0, ',', ' ') }}</td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" style="padding: 12px; text-align: center; color: #94a3b8;">لا توجد منشآت</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{-- Quick Menu --}}
+        <div class="quick-grid" style="margin-top: 8px;">
 
             <a href="{{ route('news.index') }}" class="quick-card">
                 <div class="quick-icon">📰</div>
                 <div class="quick-title">الأخبار</div>
+                <div style="font-size:10px;color:#64748b;">إدارة ونشر أخبار المؤسسة الرياضية</div>
                 <div class="quick-count">{{ \App\Models\News::count() }}</div>
             </a>
 
             <a href="{{ route('events.index') }}" class="quick-card">
                 <div class="quick-icon">📅</div>
                 <div class="quick-title">الأحداث</div>
+                <div style="font-size:10px;color:#64748b;">تنظيم ومتابعة الأحداث والتظاهرات</div>
                 <div class="quick-count">{{ \App\Models\Event::count() }}</div>
             </a>
 
             <a href="{{ route('admin.dossiers.index') }}" class="quick-card">
                 <div class="quick-icon">🗂️</div>
                 <div class="quick-title">دراسة الملفات</div>
+                <div style="font-size:10px;color:#64748b;">متابعة ملفات التسجيل والموافقة عليها</div>
                 <div class="quick-count">{{ $dossiersCount ?? 0 }}</div>
             </a>
 
             <a href="{{ route('admin.clubs.index') }}" class="quick-card">
                 <div class="quick-icon">🏊‍♂️</div>
                 <div class="quick-title">النوادي الرياضية</div>
+                <div style="font-size:10px;color:#64748b;">إدارة النوادي والفرق الرياضية</div>
                 <div class="quick-count">{{ $clubsCount ?? 0 }}</div>
             </a>
 
             <a href="{{ route('persons.index') }}" class="quick-card">
                 <div class="quick-icon">👥</div>
                 <div class="quick-title">المنخرطون</div>
+                <div style="font-size:10px;color:#64748b;">عرض وإدارة بيانات المنخرطين</div>
                 <div class="quick-count">{{ $totalAgeRegistrations ?? 0 }}</div>
             </a>
 
             <a href="{{ route('admin.activities.index') }}" class="quick-card">
                 <div class="quick-icon">🏋️‍♂️</div>
                 <div class="quick-title">التخصصات الرياضية</div>
+                <div style="font-size:10px;color:#64748b;">ضبط الأنشطة والتخصصات المتاحة</div>
                 <div class="quick-count">{{ \App\Models\Activity::count() }}</div>
             </a>
 
             <a href="{{ route('admin.complexes.index') }}" class="quick-card">
                 <div class="quick-icon">🏟️</div>
                 <div class="quick-title">المنشآت الرياضية</div>
+                <div style="font-size:10px;color:#64748b;">إدارة القاعات والمسابح والمرافق</div>
                 <div class="quick-count">{{ \App\Models\Complex::count() }}</div>
             </a>
 
             <a href="{{ route('admin.schedules.index') }}" class="quick-card">
                 <div class="quick-icon">⏰</div>
                 <div class="quick-title">الأفواج والتسعيرة</div>
+                <div style="font-size:10px;color:#64748b;">تحديد الأفواج والتوقيت والأسعار</div>
                 <div class="quick-count">{{ \App\Models\Schedule::count() }}</div>
             </a>
 
             <a href="{{ route('reservations.index') }}" class="quick-card">
                 <div class="quick-icon">📝</div>
                 <div class="quick-title">توزيع الأفواج</div>
+                <div style="font-size:10px;color:#64748b;">متابعة توزيع المنخرطين على الأفواج</div>
                 <div class="quick-count">{{ \App\Models\Reservation::count() }}</div>
             </a>
 
             <a href="{{ route('seasons.index') }}" class="quick-card">
                 <div class="quick-icon">🗓️</div>
                 <div class="quick-title">رزنامة التسجيلات</div>
+                <div style="font-size:10px;color:#64748b;">ضبط فترات فتح وغلق التسجيلات</div>
                 <div class="quick-count">{{ \App\Models\Season::count() }}</div>
             </a>
 
             <a href="{{ route('matches.index') }}" class="quick-card">
                 <div class="quick-icon">⚽</div>
                 <div class="quick-title">المباريات</div>
+                <div style="font-size:10px;color:#64748b;">إدارة المباريات والبرمجة الرياضية</div>
                 <div class="quick-count">{{ \App\Models\MatchModel::count() }}</div>
             </a>
 
             <a href="{{ route('teams.index') }}" class="quick-card">
-                <div class="quick-icon">🏆</div>
+                <div class="quick-icon">🤼‍♂️</div>
                 <div class="quick-title">الفرق</div>
+                <div style="font-size:10px;color:#64748b;">إدارة الفرق والأصناف الرياضية</div>
                 <div class="quick-count">{{ $teamsCount ?? 0 }}</div>
             </a>
 
             <a href="{{ route('tickets.index') }}" class="quick-card">
                 <div class="quick-icon">🎫</div>
                 <div class="quick-title">التذاكر</div>
+                <div style="font-size:10px;color:#64748b;">متابعة التذاكر وطلبات الدخول</div>
                 <div class="quick-count">{{ \App\Models\Ticket::count() }}</div>
             </a>
+
+            <a href="{{ route('age-categories.index') }}" class="quick-card">
+                <div class="quick-icon">👶</div>
+                <div class="quick-title">فئات العمر</div>
+                <div style="font-size:10px;color:#64748b;">ضبط الفئات العمرية للأصناف</div>
+                <div class="quick-count">{{ \App\Models\AgeCategory::count() }}</div>
+            </a>
+
+            <a href="{{ route('admin.capacities.index') }}" class="quick-card">
+                <div class="quick-icon">📊</div>
+                <div class="quick-title">السعات والطاقات</div>
+                <div style="font-size:10px;color:#64748b;">ضبط طاقة النشاطات في المنشآت</div>
+                <div class="quick-count">{{ \App\Models\ComplexActivity::count() }}</div>
+            </a>
+
+            <a href="{{ route('admin.assurances.index') }}" class="quick-card">
+                <div class="quick-icon">🛡️</div>
+                <div class="quick-title">التأمينات</div>
+                <div style="font-size:10px;color:#64748b;">متابعة التأمين السنوي للمنخرطين</div>
+                <div class="quick-count">{{ \App\Models\Person::where('etat_ass', 1)->count() }}</div>
+            </a>
+
+            <a href="{{ route('seat_types.index') }}" class="quick-card">
+                <div class="quick-icon">🪑</div>
+                <div class="quick-title">أنواع المقاعد</div>
+                <div style="font-size:10px;color:#64748b;">ضبط أنواع المقاعد وأسعارها</div>
+                <div class="quick-count">{{ \App\Models\SeatType::count() }}</div>
+            </a>
+
+            <a href="{{ route('complex_seats.index') }}" class="quick-card">
+                <div class="quick-icon">🏟️</div>
+                <div class="quick-title">مقاعد المنشآت</div>
+                <div style="font-size:10px;color:#64748b;">توزيع المقاعد على المنشآت والمباريات</div>
+                <div class="quick-count">{{ \App\Models\ComplexSeat::count() }}</div>
+            </a>
+
+            @if(($noDossierAccountsCount ?? 0) > 0)
+            <a href="{{ route('admin.accounts.no-dossier') }}" class="quick-card" style="border-color: #fca5a5; background: #fef2f2;">
+                <div class="quick-icon">🚫</div>
+                <div class="quick-title" style="color:#b91c1c;">حسابات بدون ملف</div>
+                <div style="font-size:10px;color:#991b1b;">حذف الحسابات التي لم تقدم أي ملف</div>
+                <div class="quick-count" style="background:#fee2e2;color:#b91c1c;border-color:#fecaca;">{{ $noDossierAccountsCount ?? 0 }}</div>
+            </a>
+            @endif
 
         </div>
 
@@ -939,6 +1061,73 @@ document.addEventListener('DOMContentLoaded', function () {
                             font: { family: fontFamily, size: 11 }
                         }
                     }
+                }
+            }
+        });
+    }
+
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // Complex Reservations Chart (horizontal bar)
+    const complexResCtx = document.getElementById('complexReservationsChart');
+    if (complexResCtx) {
+        const labels = @json($complexLabels ?? []);
+        const values = @json($complexReservations ?? []);
+
+        new Chart(complexResCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'عدد الحجوزات',
+                    data: values,
+                    backgroundColor: 'rgba(24,168,199,.75)',
+                    borderColor: '#18a8c7',
+                    borderWidth: 1,
+                    borderRadius: 3,
+                    barThickness: 18
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { beginAtZero: true, grid: { color: '#eef2f7' }, ticks: { precision: 0 } },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // Gender Chart (donut)
+    const genderCtx = document.getElementById('genderChart');
+    if (genderCtx) {
+        const genderData = @json($genderGlobal ?? ['ذكر' => 0, 'أنثى' => 0, 'غير محدد' => 0]);
+        const values = [genderData['ذكر'] || 0, genderData['أنثى'] || 0, genderData['غير محدد'] || 0];
+
+        new Chart(genderCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['ذكور', 'إناث', 'غير محدد'],
+                datasets: [{
+                    data: values,
+                    backgroundColor: ['#18a8c7', '#f472b6', '#cbd5e1'],
+                    borderColor: '#fff',
+                    borderWidth: 3,
+                    cutout: '65%'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 11, weight: '700' }, boxWidth: 12 } }
                 }
             }
         });

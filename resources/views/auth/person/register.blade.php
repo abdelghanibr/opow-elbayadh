@@ -14,7 +14,7 @@
           <h3 class="fw-bold mt-2">تسجيل كممارس جديد</h3>
         </div>
 
-        <form method="POST" action="{{ route('person.register.post') }}">
+        <form method="POST" action="{{ route('person.register.post') }}" id="personRegisterForm" novalidate>
             @csrf
 
             <div class="row g-4">
@@ -42,18 +42,19 @@
                 <!-- Full Name -->
                 <div class="col-md-6">
                     <label class="form-label">الاسم الكامل</label>
-                    <input type="text" name="name" value="{{ old('name') }}"
+                    <input type="text" name="name" id="reg_name" value="{{ old('name') }}"
                         class="form-control @error('name') is-invalid @enderror" required>
 
                     @error('name')
                         <div class="form-error">{{ $message }}</div>
                     @enderror
+                    <div id="reg_name_feedback" class="mt-1" style="font-size:0.9rem;"></div>
                 </div>
 
                 <!-- Email -->
               <div class="col-md-6">
     <label class="form-label">البريد الإلكتروني</label>
-    <input type="email" name="email" value="{{ old('email') }}"
+    <input type="email" name="email" id="reg_email" value="{{ old('email') }}"
         class="form-control @error('email') is-invalid @enderror"
         placeholder="nomprenom@gmail.com" required>
 
@@ -64,6 +65,7 @@
     @error('email')
         <div class="form-error">{{ $message }}</div>
     @enderror
+    <div id="reg_email_feedback" class="mt-1" style="font-size:0.9rem;"></div>
 </div>
 <div class="mt-3">
   <label for="nin" class="fw-bold">
@@ -72,59 +74,18 @@
 
     <input type="text"
            name="nin"
-           id="nin"
+           id="reg_nin"
            class="form-control @error('nin') is-invalid @enderror"
            placeholder="أدخل رقم التعريف الوطني المكوّن من 18 رقمًا أو رقم التعريف الوطني للولي في حالة القصر"
-           maxlength="20"
+           maxlength="18"
+           inputmode="numeric"
            required>
 
     @error('nin')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
+    <div id="reg_nin_feedback" class="mt-1" style="font-size:0.9rem;"></div>
 </div>
-<script>
-document.getElementById('nin').addEventListener('input', function () {
-    this.value = this.value.replace(/[^0-9]/g, '').slice(0, 20);
-});
-</script>
-
-                <!-- تاريخ الميلاد -->
-                <div class="col-md-6">
-                    <label class="form-label">تاريخ الميلاد</label>
-                    <input type="date" name="birth_date" id="birth_date"
-                           class="form-control @error('birth_date') is-invalid @enderror"
-                           value="{{ old('birth_date') }}" required
-                           onchange="toggleRegisterPledge()">
-                    @error('birth_date')
-                        <div class="form-error">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <!-- فصيلة الدم -->
-                <div class="col-md-6">
-                    <label class="form-label">فصيلة الدم</label>
-                    <select name="blood_type" class="form-control @error('blood_type') is-invalid @enderror">
-                        <option value="">— اختر —</option>
-                        @foreach(['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'] as $bt)
-                            <option value="{{ $bt }}" {{ old('blood_type') == $bt ? 'selected' : '' }}>{{ $bt }}</option>
-                        @endforeach
-                    </select>
-                    @error('blood_type')
-                        <div class="form-error">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <!-- المهنة -->
-                <div class="col-md-6">
-                    <label class="form-label">المهنة</label>
-                    <input type="text" name="profession"
-                           class="form-control @error('profession') is-invalid @enderror"
-                           value="{{ old('profession') }}"
-                           placeholder="طالب، مهندس، مستخدم...">
-                    @error('profession')
-                        <div class="form-error">{{ $message }}</div>
-                    @enderror
-                </div>
 
                 <!-- Complex -->
 
@@ -134,18 +95,20 @@ document.getElementById('nin').addEventListener('input', function () {
                 <!-- Password -->
                 <div class="col-md-6">
                     <label class="form-label">كلمة المرور</label>
-                    <input type="password" name="password"
+                    <input type="password" name="password" id="reg_password"
                         class="form-control @error('password') is-invalid @enderror" required>
 
                     @error('password')
                         <div class="form-error">{{ $message }}</div>
                     @enderror
+                    <div id="reg_password_feedback" class="mt-1" style="font-size:0.9rem;"></div>
                 </div>
 
                 <!-- Confirm Password -->
                 <div class="col-md-6">
                     <label class="form-label">تأكيد كلمة المرور</label>
-                    <input type="password" name="password_confirmation" class="form-control" required>
+                    <input type="password" name="password_confirmation" id="reg_password_confirmation" class="form-control" required>
+                    <div id="reg_password_confirmation_feedback" class="mt-1" style="font-size:0.9rem;"></div>
                 </div>
 
                 <!-- Robot Check -->
@@ -175,6 +138,7 @@ document.getElementById('nin').addEventListener('input', function () {
 
     <input type="text" 
            name="captcha_word" 
+           id="reg_captcha"
            class="form-control text-center"
            placeholder="اكتب الكلمة هنا" 
            required>
@@ -182,6 +146,7 @@ document.getElementById('nin').addEventListener('input', function () {
     @error('captcha_word')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
+    <div id="reg_captcha_feedback" class="mt-1" style="font-size:0.9rem;"></div>
 </div>
 
 
@@ -203,7 +168,7 @@ document.getElementById('nin').addEventListener('input', function () {
     وألتزم باحترام القانون الداخلي للمركب.
 </p>
 
-<p id="registerPledge" style="display:none;">
+<p id="registerPledge">
                 أتعهد بأن جميع المعلومات المصرح بها في هذه الاستمارة صحيحة ودقيقة،
                 وأتحمل كامل المسؤولية في حال ثبوت خلاف ذلك.
             </p>
@@ -388,21 +353,144 @@ document.getElementById('nin').addEventListener('input', function () {
 </style>
 
 <script>
-function toggleRegisterPledge() {
-    var birthInput = document.getElementById('birth_date');
-    if (!birthInput || !birthInput.value) return;
-    var today = new Date();
-    var b = new Date(birthInput.value);
-    var age = today.getFullYear() - b.getFullYear();
-    if (today.getMonth() < b.getMonth() || (today.getMonth() === b.getMonth() && today.getDate() < b.getDate())) {
-        age--;
+(function () {
+    const form = document.getElementById('personRegisterForm');
+    const captchaWord = {!! json_encode(strtolower($correctWord)) !!};
+    const checkEmailUrl = "{{ route('person.check-email') }}";
+
+    function el(id) { return document.getElementById(id); }
+
+    const rules = {
+        reg_name: { check: v => v.trim().length >= 2, ok: 'الاسم صحيح ✔', err: 'الاسم الكامل مطلوب (حرفان على الأقل)' },
+        reg_email: { ok: 'البريد متوفر ✔', err: 'صيغة البريد الإلكتروني غير صحيحة', taken: 'هذا البريد الإلكتروني مستعمل بالفعل' },
+        reg_nin: { check: v => /^\d{18}$/.test(v), ok: 'NIN صحيح (18 رقمًا) ✔', err: 'يجب أن يتكون من 18 رقمًا بالضبط' },
+        reg_password: { check: v => v.length >= 8, ok: 'قوة كلمة المرور مقبولة ✔', err: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' },
+        reg_password_confirmation: { check: v => v === el('reg_password').value, ok: 'كلمتا المرور متطابقتان ✔', err: 'كلمتا المرور غير متطابقتين' },
+        reg_captcha: { check: v => v.trim().toLowerCase() === captchaWord, ok: 'التحقق صحيح ✔', err: 'الكلمة غير صحيحة، أعد كتابتها' },
+    };
+
+    function setState(input, feedback, ok, msg) {
+        input.classList.remove('is-valid', 'is-invalid');
+        feedback.classList.remove('text-success', 'text-danger', 'text-muted');
+        if (ok) {
+            input.classList.add('is-valid');
+            feedback.classList.add('text-success');
+            feedback.innerHTML = '✔ ' + msg;
+        } else {
+            input.classList.add('is-invalid');
+            feedback.classList.add('text-danger');
+            feedback.innerHTML = '✘ ' + msg;
+        }
     }
-    var pledgeEl = document.getElementById('registerPledge');
-    if (pledgeEl) {
-        pledgeEl.style.display = age >= 18 ? 'block' : 'none';
+
+    function pending(input, feedback, msg) {
+        input.classList.remove('is-valid', 'is-invalid');
+        feedback.classList.remove('text-success', 'text-danger');
+        feedback.classList.add('text-muted');
+        feedback.innerHTML = '⏳ ' + msg;
     }
-}
-document.addEventListener('DOMContentLoaded', toggleRegisterPledge);
+
+    // NIN : chiffres uniquement, max 18
+    el('reg_nin').addEventListener('input', function () {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 18);
+    });
+
+    // Email : vérification de disponibilité (AJAX)
+    function checkEmailAvailability(email) {
+        return fetch(checkEmailUrl + '?email=' + encodeURIComponent(email), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.json())
+            .then(d => d.available);
+    }
+
+    let emailTimer = null;
+    function liveEmailCheck() {
+        const input = el('reg_email');
+        const fb = el('reg_email_feedback');
+        const email = input.value.trim();
+        const fmtOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+        if (!fmtOk) {
+            setState(input, fb, false, rules.reg_email.err);
+            return;
+        }
+        pending(input, fb, 'جاري التحقق من التوفر...');
+        clearTimeout(emailTimer);
+        emailTimer = setTimeout(() => {
+            checkEmailAvailability(email).then(available => {
+                setState(input, fb, available, available ? rules.reg_email.ok : rules.reg_email.taken);
+            }).catch(() => setState(input, fb, true, rules.reg_email.ok));
+        }, 500);
+    }
+
+    function validateField(name) {
+        const input = el(name);
+        if (!input) return true;
+        const fb = el(name + '_feedback');
+        const rule = rules[name];
+        if (!rule) return true;
+        if (name === 'reg_email') {
+            const email = input.value.trim();
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+                setState(input, fb, false, rule.err);
+                return false;
+            }
+            return true; // la disponibilité est vérifiée en AJAX (submit)
+        }
+        const ok = rule.check(input.value);
+        setState(input, fb, ok, ok ? rule.ok : rule.err);
+        return ok;
+    }
+
+    Object.keys(rules).forEach(function (name) {
+        const input = el(name);
+        if (input) input.addEventListener('input', function () { validateField(name); });
+    });
+
+    el('reg_email').addEventListener('input', liveEmailCheck);
+
+    el('reg_password').addEventListener('input', function () {
+        if (el('reg_password_confirmation').value !== '') validateField('reg_password_confirmation');
+    });
+
+    // Blocage de l'envoi tant que tout n'est pas valide
+    form.addEventListener('submit', async function (e) {
+        let allOk = true;
+
+        for (const name of Object.keys(rules)) {
+            if (name === 'reg_email') {
+                const input = el('reg_email');
+                const fb = el('reg_email_feedback');
+                const email = input.value.trim();
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+                    setState(input, fb, false, rules.reg_email.err);
+                    allOk = false;
+                    continue;
+                }
+                pending(input, fb, 'جاري التحقق من التوفر...');
+                try {
+                    const available = await checkEmailAvailability(email);
+                    if (!available) { setState(input, fb, false, rules.reg_email.taken); allOk = false; }
+                    else setState(input, fb, true, rules.reg_email.ok);
+                } catch (err) { setState(input, fb, true, rules.reg_email.ok); }
+                continue;
+            }
+            if (!validateField(name)) allOk = false;
+        }
+
+        const privacy = el('privacy_policy');
+        if (privacy && !privacy.checked) {
+            allOk = false;
+            privacy.classList.add('is-invalid');
+        } else if (privacy) {
+            privacy.classList.remove('is-invalid');
+        }
+
+        if (!allOk) {
+            e.preventDefault();
+            const firstInvalid = form.querySelector('.is-invalid');
+            if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+})();
 </script>
 
 @endsection

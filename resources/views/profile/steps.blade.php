@@ -123,7 +123,13 @@
     <!-- Errors -->
     @if ($errors->any())
         <div class="alert alert-danger text-right">
-            ⚠ يرجى ملء كل الحقول المطلوبة بشكل صحيح.
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <strong>⚠ يرجى ملء كل الحقول المطلوبة بشكل صحيح.</strong>
+            <ul class="mb-0 mt-1 ps-3 small">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
 
@@ -133,5 +139,146 @@
     </div>
 
 </div>
+
+@push('js')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.querySelector('.box-area form');
+    if (!form) return;
+
+    // Règles de validation par champ (libellé arabe + message)
+    var RULES = {
+        'firstname':       { msg: '⚠ الاسم مطلوب' },
+        'lastname':        { msg: '⚠ اللقب مطلوب' },
+        'birth_date':      { msg: '⚠ تاريخ الميلاد مطلوب' },
+        'gender':          { msg: '⚠ يرجى اختيار الجنس' },
+        'handicap':        { msg: '⚠ يرجى الإجابة على السؤال' },
+        'tuteur_fullname': { msg: '⚠ اسم الأب مطلوب' },
+        'parent_firstname':{ msg: '⚠ اسم الولي مطلوب' },
+        'parent_lastname': { msg: '⚠ لقب الولي مطلوب' },
+        'parent_phone':    { msg: '⚠ رقم هاتف الولي مطلوب' },
+        'phone':           { msg: '⚠ رقم الهاتف مطلوب' },
+        'address':         { msg: '⚠ العنوان مطلوب' },
+        'education':       { msg: '⚠ يرجى اختيار الفئة' }
+    };
+
+    function groupOf(el) {
+        return el.closest('.mb-3') || el.closest('.col-lg-5') || el.closest('.col-12');
+    }
+
+    function clearField(el) {
+        var group = groupOf(el);
+        if (!group) return;
+        group.classList.remove('has-missing');
+        var hint = group.querySelector('.js-field-hint');
+        if (hint) hint.remove();
+        if (el.classList) el.classList.remove('is-invalid');
+        var g2 = group.querySelectorAll('input');
+        if (g2.length <= 1) { el.classList.remove('is-valid'); }
+    }
+
+    // Valide UN champ, retourne true/false
+    function validateField(el) {
+        var name = el.name;
+        if (!RULES[name]) return true;
+        if (el.type === 'radio') {
+            var group = form.querySelectorAll('input[name="' + name + '"]');
+            var checked = Array.prototype.some.call(group, function (r) { return r.checked; });
+            group.forEach(function (r) {
+                clearField(r);
+                if (!checked) {
+                    var g = groupOf(r);
+                    g.classList.add('has-missing');
+                    g.querySelectorAll('input').forEach(function (x) { x.classList.add('is-invalid'); });
+                    addHint(g, RULES[name].msg);
+                }
+            });
+            return checked;
+        }
+        if (el.type === 'hidden' || el.type === 'file') return true;
+
+        var val = (el.value || '').trim();
+        var ok = val !== '';
+        clearField(el);
+        if (!ok) {
+            var g = groupOf(el);
+            if (g) {
+                g.classList.add('has-missing');
+                el.classList.add('is-invalid');
+                addHint(g, RULES[name].msg);
+            }
+        } else {
+            el.classList.add('is-valid');
+        }
+        return ok;
+    }
+
+    function addHint(group, message) {
+        var hint = group.querySelector('.js-field-hint');
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.className = 'text-danger small fw-bold mt-1 js-field-hint';
+            group.appendChild(hint);
+        }
+        hint.textContent = message;
+    }
+
+    // ✅ Validation en temps réel : dès qu'on quitte un champ (blur)
+    form.addEventListener('blur', function (e) {
+        var el = e.target;
+        if (el.name && RULES[el.name]) validateField(el);
+    }, true);
+
+    // ✅ Efface l'erreur dès que l'utilisateur corrige
+    form.addEventListener('input', function (e) {
+        var el = e.target;
+        if (el.name && RULES[el.name] && (el.value || '').trim() !== '') {
+            clearField(el);
+        }
+    });
+    form.addEventListener('change', function (e) {
+        var el = e.target;
+        if (el.type === 'radio' && el.name && RULES[el.name]) {
+            form.querySelectorAll('input[name="' + el.name + '"]').forEach(function (r) { clearField(r); });
+            validateField(el);
+        }
+        if (el.name && RULES[el.name] && el.tagName === 'SELECT' && el.value) {
+            clearField(el);
+        }
+    });
+
+    // ✅ Soumission : vérifier tous les champs, bloquer si manquants
+    form.addEventListener('submit', function (e) {
+        var missing = [];
+        var firstMissing = null;
+
+        form.querySelectorAll('input[name], select[name]').forEach(function (el) {
+            var name = el.name;
+            if (!RULES[name]) return;
+            var ok = validateField(el);
+            if (!ok) {
+                missing.push(RULES[name].msg);
+                if (!firstMissing) firstMissing = el;
+            }
+        });
+
+        if (missing.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            var firstGroup = firstMissing ? groupOf(firstMissing) : null;
+            if (firstGroup) firstGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (firstMissing) {
+                if (firstMissing.type === 'radio') {
+                    var r = form.querySelector('input[name="' + firstMissing.name + '"]');
+                    if (r) r.focus();
+                } else {
+                    firstMissing.focus();
+                }
+            }
+        }
+    });
+});
+</script>
+@endpush
 
 @endsection

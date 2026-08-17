@@ -122,14 +122,29 @@
         ? $satim_data
         : (is_array($payment->payload ?? null) ? $payment->payload : (json_decode($payment->payload ?? '[]', true) ?: []));
 
-    $satimAmount      = data_get($satim, 'Amount');
-    $satimCurrency    = data_get($satim, 'currency', '012');
-    $satimPan         = data_get($satim, 'Pan');
-    $satimCardholder  = data_get($satim, 'cardholderName');
-    $satimAction      = data_get($satim, 'actionCodeDescription', $action ?? null);
-    $satimOrderNumber = data_get($satim, 'OrderNumber', $order_id ?? ($payment->order_id ?? '—'));
-    $satimErrorCode   = data_get($satim, 'ErrorCode');
-    $satimAuthId      = data_get($satim, 'authorizationResponseId');
+    $dataAttr = data_get($satim, 'data.attributes', []);
+
+    $satimAmount      = data_get($dataAttr, 'amount', data_get($satim, 'Amount'));
+    $satimCurrency    = data_get($dataAttr, 'currency', data_get($satim, 'currency', '012'));
+    $satimPan         = data_get($dataAttr, 'pan', data_get($satim, 'Pan'));
+    $satimCardholder  = data_get($dataAttr, 'cardholderName', data_get($satim, 'cardholderName'));
+    $satimAction      = data_get($dataAttr, 'action_code_description', data_get($satim, 'actionCodeDescription', $action ?? null));
+    $satimOrderNumber = data_get($dataAttr, 'order_id',
+                        data_get($dataAttr, 'order_number',
+                        data_get($dataAttr, 'OrderNumber',
+                        data_get($satim, 'data.id',
+                        data_get($satim, 'OrderNumber',
+                        $orderNumber ?? ($payment->order_id ?? '—'))))));
+    $satimAuthCode    = data_get($dataAttr, 'approval_code',
+                        data_get($dataAttr, 'auth_code',
+                        data_get($dataAttr, 'params.authorizationResponseId',
+                        data_get($satim, 'approval_code',
+                        data_get($satim, 'approvalCode',
+                        data_get($satim, 'authorizationResponseId'))))));
+
+    if (preg_match('/error\s*code\s*[:=]/i', (string) $satimAction)) {
+        $satimAction = null;
+    }
 @endphp
 
 <div class="container py-4" style="direction: rtl; text-align:right; max-width:900px">
@@ -192,6 +207,7 @@
                     </div>
                 </div>
 
+                @if($reservation)
                 <div class="opow-card">
                     <div class="opow-header">
                         📅 تفاصيل الحجز
@@ -216,6 +232,7 @@
                         </table>
                     </div>
                 </div>
+                @endif
 
             </div>
 
@@ -225,16 +242,15 @@
                     <h6 class="fw-bold mb-3">💳 معلومات الدفع</h6>
 
                     <p><strong>رقم الوصل المحلي:</strong> {{ $payment->order_id ?? '—' }}</p>
-                    <p><strong>رقم العملية SATIM:</strong> {{ $satimOrderNumber ?? '—' }}</p>
-                    <p><strong>رمز الموافقة:</strong> {{ $approval_code ?? '—' }}</p>
-                    <p><strong>معرف التفويض:</strong> {{ $satimAuthId ?? '—' }}</p>
+                    <p><strong>رقم العملية:</strong> {{ $satimOrderNumber ?? '—' }}</p>
+                    <p><strong>رمز الموافقة:</strong> {{ $satimAuthCode ?? '—' }}</p>
 
                     <p>
                         <strong>تاريخ الدفع:</strong>
                         {{ $payment->datetimesatim ? $payment->datetimesatim->format('Y-m-d H:i') : '-' }}
                     </p>
 
-                    <p><strong>طريقة الدفع:</strong> بطاقة بنكية (SATIM)</p>
+                     <p><strong>طريقة الدفع:</strong> البطاقة الذهبية/ CIB </p>
 
                     @if($satimCardholder)
                         <p><strong>اسم حامل البطاقة:</strong> {{ $satimCardholder }}</p>
@@ -255,7 +271,7 @@
                             </div>
                             <small style="opacity:.85">
                                 @if($satimAmount)
-                                    SATIM: {{ number_format($satimAmount / 100, 2) }} دج
+                                    {{ number_format($satimAmount / 100, 2) }} دج
                                 @else
                                     شامل كل الرسوم
                                 @endif
@@ -271,12 +287,12 @@
                         </div>
 
                         <div class="d-flex flex-wrap gap-2">
-                         <button type="button"
-        class="btn2026 btn2026-blue"
-        onclick="downloadReceiptPdf()">
+                         <a href="{{ route('payment.receipt', $payment->order_id) }}"
+        target="_blank"
+        class="btn2026 btn2026-blue">
     <i class="fa-solid fa-file-arrow-down"></i>
-    تحميل وصل الدفع
-</button>
+       تحميل وصل الدفع 
+</a>
 
                             <button type="button"
                                     class="btn2026 btn2026-green"
@@ -296,24 +312,13 @@
                         </div>
                     </div>
 
-                    <div class="text-center mt-4">
-                        <a href="{{ route('reservation.my-reservations') }}"
-                           class="btn btn-main btn-sm px-4">
-                            ⬅️ عرض الحجوزات
-                        </a>
-                    </div>
+             <div class="text-center mt-4">
+    <a href="{{ route('reservation.my-reservations') }}"
+       class="btn btn-main btn-sm px-4">
+        ⬅️ عرض الحجوزات
+    </a>
 
-                    <div class="text-center mt-3">
-                        <div style="font-size:13.5px; color:#14532d; margin-bottom:6px;">
-                            في حال وجود مشكلة في بطاقتك CIB أو الذهبية<br>
-                            يرجى الاتصال بمركز الدعم SATIM
-                        </div>
-
-                        <img src="{{ asset('images/app.png') }}"
-                             alt="SATIM 3020"
-                             style="height:48px">
-                    </div>
-
+</div>
                 </div>
             </div>
 
@@ -329,20 +334,20 @@
                class="btn btn-main btn-sm px-4">
                 ⬅️ عرض الحجوزات
             </a>
-
-            <div class="text-center mt-3">
-                <div style="font-size:13.5px; color:#14532d; margin-bottom:6px;">
-                    في حال وجود مشكلة في بطاقتك CIB أو الذهبية<br>
-                    يرجى الاتصال بمركز الدعم SATIM
-                </div>
-
-                <img src="{{ asset('images/app.png') }}"
-                     alt="SATIM 3020"
-                     style="height:48px">
-            </div>
         </div>
     @endif
+ <div class="text-center mt-3">
 
+    <div style="font-size:13.5px; color:#14532d; margin-bottom:6px;">
+        في حال وجود مشكلة في بطاقتك CIB أو الذهبية<br>
+        يرجى الاتصال بمركز الدعم SATIM
+    </div>
+
+    <img src="{{ asset('images/app.png') }}"
+         alt="SATIM 3020"
+         style="height:48px">
+
+</div>
 </div>
 
 @if(isset($payment) && $payment && ($status === 'paid' || $status === 'success'))
@@ -374,163 +379,7 @@
     </div>
 </div>
 @endif
-@php
-    $satim = isset($satim_data) && is_array($satim_data)
-        ? $satim_data
-        : (is_array($payment->payload ?? null) ? $payment->payload : (json_decode($payment->payload ?? '[]', true) ?: []));
-@endphp
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<div id="receiptPdfContent" style="
-    position:absolute;
-    left:-99999px;
-    top:0;
-    width:800px;
-    background:#ffffff;
-    color:#000;
-    padding:30px;
-    font-family:'Cairo', sans-serif;
-    direction: rtl;
-    text-align: right;
-    line-height:1.8;
-">
 
-    <div style="border:1px solid #ddd; border-radius:12px; padding:25px; font-family:'Cairo', sans-serif;">
-        <h2 style="margin:0 0 10px; color:#14532d; font-family:'Cairo', sans-serif; font-weight:800; font-size:34px;">
-            وصل دفع إلكتروني
-        </h2>
-
-        <h3 style="margin:0 0 20px; color:#1b5e20; font-family:'Cairo', sans-serif; font-weight:700; font-size:24px;">
-            ديوان المركب المتعدد الرياضات لولاية البيض
-        </h3>
-
-        <table style="width:100%; border-collapse:collapse; margin-bottom:20px; font-family:'Cairo', sans-serif;">
-            <tr>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:700;">
-                    رقم الوصل المحلي
-                </td>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:500;">
-                    {{ $payment->order_id ?? '—' }}
-                </td>
-            </tr>
-            <tr>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:700;">
-                    رقم العملية SATIM
-                </td>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:500;">
-                    {{ data_get($satim, 'OrderNumber', $order_id ?? '—') }}
-                </td>
-            </tr>
-            <tr>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:700;">
-                    رمز الموافقة
-                </td>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:500;">
-                    {{ $approval_code ?? '—' }}
-                </td>
-            </tr>
-            <tr>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:700;">
-                    حالة العملية
-                </td>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:500;">
-                    {{ data_get($satim, 'actionCodeDescription', $action ?? '—') }}
-                </td>
-            </tr>
-            <tr>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:700;">
-                    تاريخ الدفع
-                </td>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:500;">
-                    {{ $payment->datetimesatim ? $payment->datetimesatim->format('Y-m-d H:i') : now()->format('Y-m-d H:i') }}
-                </td>
-            </tr>
-            <tr>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:700;">
-                    المبلغ
-                </td>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:600;">
-                    {{ number_format(($payment->amount ?? 0) / 100, 2) }} دج
-                </td>
-            </tr>
-        </table>
-
-        <h4 style="color:#14532d; font-family:'Cairo', sans-serif; font-weight:700; font-size:22px; margin-bottom:12px;">
-            معلومات المستفيد
-        </h4>
-
-        <table style="width:100%; border-collapse:collapse; margin-bottom:20px; font-family:'Cairo', sans-serif;">
-            <tr>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:700;">
-                    الاسم
-                </td>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:500;">
-                    {{ optional($user)->name ?? '—' }}
-                </td>
-            </tr>
-            <tr>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:700;">
-                    البريد الإلكتروني
-                </td>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:500;">
-                    {{ optional($user)->email ?? '—' }}
-                </td>
-            </tr>
-            @if(optional($user)->phone)
-            <tr>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:700;">
-                    الهاتف
-                </td>
-                <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:500;">
-                    {{ $user->phone }}
-                </td>
-            </tr>
-            @endif
-        </table>
-
-        @if($reservation)
-        <h4 style="color:#14532d; font-family:'Cairo', sans-serif; font-weight:700; font-size:22px; margin-bottom:12px;">
-            تفاصيل الحجز
-        </h4>
-
-        <table style="width:100%; border-collapse:collapse; margin-bottom:20px; font-family:'Cairo', sans-serif;">
-            <thead>
-                <tr>
-                    <th style="padding:10px; border:1px solid #ddd; background:#f1f8f4; font-family:'Cairo', sans-serif; font-weight:700;">
-                        النشاط
-                    </th>
-                    <th style="padding:10px; border:1px solid #ddd; background:#f1f8f4; font-family:'Cairo', sans-serif; font-weight:700;">
-                        المنشأة
-                    </th>
-                    <th style="padding:10px; border:1px solid #ddd; background:#f1f8f4; font-family:'Cairo', sans-serif; font-weight:700;">
-                        المدة
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:500;">
-                        {{ $reservation->complexActivity->activity->title ?? '—' }}
-                    </td>
-                    <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:500;">
-                        {{ $reservation->complexActivity->complex->nom ?? '—' }}
-                    </td>
-                    <td style="padding:10px; border:1px solid #ddd; font-family:'Cairo', sans-serif; font-weight:500;">
-                        {{ $reservation->season->name ?? '—' }}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-        @endif
-
-        <div style="margin-top:20px; font-size:13px; color:#666; font-family:'Cairo', sans-serif; font-weight:500;">
-            تم إنشاء هذا الوصل إلكترونيًا بتاريخ {{ now()->format('Y-m-d H:i') }}
-        </div>
-    </div>
-</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 function openEmailPopup() {
     const popup = document.getElementById("emailPopup");
@@ -558,72 +407,6 @@ function printReservation(id) {
     });
 })();
 
-async function generateReceiptPdf(mode = "download") {
-    const element = document.getElementById('receiptPdfContent');
-
-    if (!element) {
-        throw new Error("Element #receiptPdfContent introuvable");
-    }
-
-    if (!window.jspdf || !window.html2canvas) {
-        throw new Error("jsPDF ou html2canvas non chargé");
-    }
-
-    const { jsPDF } = window.jspdf;
-
-    const canvas = await html2canvas(element, {
-        scale: 1.5,
-        useCORS: true,
-        backgroundColor: '#ffffff'
-    });
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.85);
-
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-
-    const margin = 5;
-    const usableWidth = pageWidth - (margin * 2);
-    const usableHeight = pageHeight - (margin * 2);
-
-    const imgWidth = usableWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    let heightLeft = imgHeight;
-    let position = margin;
-
-    pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
-    heightLeft -= usableHeight;
-
-    while (heightLeft > 0) {
-        position = heightLeft - imgHeight + margin;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
-        heightLeft -= usableHeight;
-    }
-
-    if (mode === "download") {
-        pdf.save('recu-paiement-{{ $payment->order_id ?? "receipt" }}.pdf');
-        return true;
-    }
-
-    if (mode === "blob") {
-        return pdf.output("blob");
-    }
-
-    throw new Error("Mode non supporté");
-}
-
-async function downloadReceiptPdf() {
-    try {
-        await generateReceiptPdf("download");
-    } catch (error) {
-        console.error('Erreur génération PDF :', error);
-        alert('تعذر إنشاء ملف PDF');
-    }
-}
-
 document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("emailReceiptForm");
     if (!form) return;
@@ -637,15 +420,12 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = "جاري التحضير...";
+                submitBtn.innerHTML = "جاري الإرسال...";
             }
-
-            const pdfBlob = await generateReceiptPdf("blob");
 
             const formData = new FormData();
             formData.append("_token", "{{ csrf_token() }}");
             formData.append("email", emailInput.value);
-            formData.append("pdf_file", pdfBlob, "recu-paiement-{{ $payment->order_id ?? 'receipt' }}.pdf");
 
             const response = await fetch(form.action, {
                 method: "POST",
@@ -660,7 +440,6 @@ document.addEventListener("DOMContentLoaded", function () {
             if (result.success) {
                 alert(result.message || "تم إرسال الوصل بنجاح");
                 closeEmailPopup();
-                window.location.reload();
             } else {
                 alert(result.message || "فشل إرسال البريد");
             }

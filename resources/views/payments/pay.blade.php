@@ -105,31 +105,22 @@
 <form action="{{ route('payment.initiate') }}" method="POST" id="paymentForm">
     @csrf
 
-    <input type="hidden" name="amount"
-           value="{{ (int) $reservation->total_price }}">
-
     <input type="hidden" name="reservation_id"
            value="{{ $reservation->id }}">
 
-    <input type="hidden" name="card_type" id="cardType">
+    @if($errors->any())
+        <div class="alert alert-danger" style="border-radius:12px; font-size:0.9rem;">
+            @foreach($errors->all() as $error)
+                <div><i class="fa-solid fa-circle-xmark"></i> {{ $error }}</div>
+            @endforeach
+        </div>
+    @endif
 
-    {{-- ===== CARD CHOICE ===== --}}
-    <div class="satim-choice mb-3">
-
-      <div class="satim-choice mb-3">
-
-    <div class="satim-box"
-         data-value="CIB">
-        <img src="{{ asset('images/cib.png') }}" alt="CIB">
-    </div>
-
-   
-
-</div>
-
-
-
-    </div>
+    @if(session('error'))
+        <div class="alert alert-danger" style="border-radius:12px; font-size:0.9rem;">
+            <i class="fa-solid fa-circle-xmark"></i> {{ session('error') }}
+        </div>
+    @endif
 
     {{-- CAPTCHA --}}
     @if (!app()->environment('local'))
@@ -173,7 +164,7 @@
 
     {{-- BUTTON --}}
     <button type="submit"
-            class="btn btn-success btn-lg w-100 shadow-sm pay-satim-btn"
+            class="btn btn-success btn-lg w-100 shadow-sm"
             id="payBtn"
             disabled>
 
@@ -185,18 +176,7 @@
 
 </form>
 
-<div class="text-center mt-3">
-
-    <div style="font-size:13.5px; color:#14532d; margin-bottom:6px;">
-        في حال وجود مشكلة في بطاقتك CIB أو الذهبية<br>
-        يرجى الاتصال بمركز الدعم SATIM
-    </div>
-
-    <img src="{{ asset('images/app.png') }}"
-         alt="SATIM 3020"
-         style="height:48px">
-
-</div>
+        
 
             </div>
         </div>

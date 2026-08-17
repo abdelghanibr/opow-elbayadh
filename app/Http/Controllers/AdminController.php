@@ -9,6 +9,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Models\Complex;
 use App\Models\Reservation ;
+use App\Models\Activity;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -106,6 +107,37 @@ $dossierProcessingPercent = $dossiersCount > 0
 
 $teamsCount = \App\Models\Team::count();
 
+// ====== Complex stats (from Mila) ======
+$complexStats = Complex::all()
+    ->map(function($complex) {
+        $userIds = User::where('complex_id', $complex->id)->pluck('id');
+        $personIds = Person::whereIn('user_id', $userIds)->pluck('id');
+        $approvedDossiers = Dossier::whereIn('person_id', $personIds)->where('etat', 'approved')->count();
+
+        return (object) [
+            'nom' => $complex->nom,
+            'subscribers' => $personIds->count(),
+            'reservations' => Reservation::whereIn('user_id', $userIds)->count(),
+            'approved' => $approvedDossiers,
+            'paidAmount' => 0,
+        ];
+    });
+
+$complexLabels = $complexStats->pluck('nom')->toArray();
+$complexReservations = $complexStats->pluck('reservations')->toArray();
+
+// ====== Gender stats ======
+$genderGlobal = [
+    'ذكر' => Person::where('gender', 'H')->count() + Person::where('gender', 'M')->count(),
+    'أنثى' => Person::where('gender', 'F')->count(),
+    'غير محدد' => Person::whereNull('gender')->orWhere('gender', '')->count(),
+];
+
+// ====== No-dossier accounts ======
+$noDossierAccountsCount = User::whereNotIn('type', ['admin'])
+    ->whereDoesntHave('person', fn($q) => $q->whereNotNull('id'))
+    ->count();
+
 return view('admin.dashboard', compact(
     'personsCount',
     'clubsCount',
@@ -117,22 +149,27 @@ return view('admin.dashboard', compact(
     'recentTicketsCount',
     'recentEventsCount',
     'dossierProcessingPercent',
-'approvedDossiersCount',
-'rejectedDossiersCount',
-'processedDossiersCount',
-'reservationsCount',
-'paymentsCount',
-'reservationRate',
-'paymentRate',
-'activitiesCount',
-'occupiedActivitiesCount',
-'activitiesOccupationRate',
-'ageCategoriesCount',
-'ageCategoryLabels',
-'ageCategoryValues',
-'totalAgeRegistrations',
-'pendingDossiersCount',
-'teamsCount'
+    'approvedDossiersCount',
+    'rejectedDossiersCount',
+    'processedDossiersCount',
+    'reservationsCount',
+    'paymentsCount',
+    'reservationRate',
+    'paymentRate',
+    'activitiesCount',
+    'occupiedActivitiesCount',
+    'activitiesOccupationRate',
+    'ageCategoriesCount',
+    'ageCategoryLabels',
+    'ageCategoryValues',
+    'totalAgeRegistrations',
+    'pendingDossiersCount',
+    'teamsCount',
+    'complexStats',
+    'complexLabels',
+    'complexReservations',
+    'genderGlobal',
+    'noDossierAccountsCount'
 ));
     }
 public function dashboardComplex($id)
@@ -193,6 +230,15 @@ public function dashboardComplex($id)
 
     $complex = Complex::findOrFail($id);
 
+    // حساب بدون ملف
+    $noDossierAccountsCount = $this->orphanAccounts()->count();
+
+    // الأفواج النشطة
+    $activeGroupsCount = \App\Models\Schedule::whereIn(
+        'complex_activity_id',
+        \App\Models\ComplexActivity::where('complex_id', $id)->pluck('id')
+    )->where('active', 1)->count();
+
     return view('admin.dashboard_complex', compact(
         'complex',
         'dossiersCount',
@@ -204,7 +250,9 @@ public function dashboardComplex($id)
         'seatsCount',
         'matchesCount',
         'ticketsCount',
-        'teamsCount'
+        'teamsCount',
+        'noDossierAccountsCount',
+        'activeGroupsCount'
     ));
 }
 
@@ -372,5 +420,196 @@ public function dashboardComplex($id)
         $admin->delete();
 
         return redirect()->back()->with('success', 'تم حذف المسؤول');
+    }
+
+    public function accountsWithoutDossiers()
+    {
+        $orphans     = $this->orphanAccounts();
+        $scopeComplex = null;
+
+        if (!empty(Auth::user()->complex_id)) {
+            $scopeComplex = Complex::find(Auth::user()->complex_id);
+        }
+
+        return view('admin.accounts.no_dossier', compact('orphans', 'scopeComplex'));
+    }
+
+    private function orphanAccounts()
+    {
+        $dossierPersonIds = Dossier::whereNotNull('person_id')
+            ->pluck('person_id')
+            ->flip()
+            ->all();
+
+        $personParent = Person::pluck('parent_id', 'id')->all();
+
+        $childrenMap = [];
+        foreach ($personParent as $pid => $parentId) {
+            if ($parentId) {
+                $childrenMap[$parentId][] = $pid;
+            }
+        }
+
+        $rootsByUser = [];
+        foreach (Person::whereNotNull('user_id')->pluck('user_id', 'id') as $pid => $userId) {
+            $rootsByUser[(int) $userId][] = (int) $pid;
+        }
+
+        $complexId = Auth::user()->complex_id ?? 0;
+
+        $users = User::whereIn('type', ['person', 'club', 'company'])
+            ->where('id', '!=', Auth::id())
+            ->when(!empty($complexId), function ($q) use ($complexId) {
+                $q->where('complex_id', $complexId);
+            })
+            ->orderBy('id')
+            ->get(['id', 'name', 'email', 'phone', 'type', 'created_at']);
+
+        $orphans = [];
+        foreach ($users as $u) {
+            $roots = $rootsByUser[(int) $u->id] ?? [];
+            $hasDossier = false;
+
+            foreach ($roots as $root) {
+                $stack = [$root];
+                $seen  = [];
+
+                while ($stack) {
+                    $cur = array_pop($stack);
+                    if (isset($seen[$cur])) {
+                        continue;
+                    }
+                    $seen[$cur] = true;
+
+                    if (isset($dossierPersonIds[$cur])) {
+                        $hasDossier = true;
+                        break 2;
+                    }
+
+                    foreach ($childrenMap[$cur] ?? [] as $child) {
+                        $stack[] = $child;
+                    }
+                }
+            }
+
+            if (!$hasDossier) {
+                $orphans[] = $u;
+            }
+        }
+
+        return collect($orphans);
+    }
+
+    public function destroyOrphanAccount($userId)
+    {
+        $user = User::findOrFail($userId);
+
+        if ($user->id === Auth::id()) {
+            return back()->with('error', '⚠ لا يمكنك حذف حسابك الخاص.');
+        }
+
+        $personIds = Person::where('user_id', $user->id)->pluck('id');
+
+        \App\Models\Dossier::whereIn('person_id', $personIds)->delete();
+        \App\Models\Reservation::where('user_id', $user->id)->delete();
+        Person::where('user_id', $user->id)->delete();
+        $user->delete();
+
+        return back()->with('success', '✔ تم حذف الحساب وكل بياناته المرتبطة.');
+    }
+
+    public function destroyAllOrphanAccounts()
+    {
+        $orphans = $this->orphanAccounts();
+
+        $deleted = 0;
+        foreach ($orphans as $u) {
+            $personIds = Person::where('user_id', $u->id)->pluck('id');
+            \App\Models\Dossier::whereIn('person_id', $personIds)->delete();
+            \App\Models\Reservation::where('user_id', $u->id)->delete();
+            Person::where('user_id', $u->id)->delete();
+            User::where('id', $u->id)->delete();
+            $deleted++;
+        }
+
+        return back()->with('success', "✔ تم حذف {$deleted} حسابًا بدون ملف.");
+    }
+
+    public function programmeHebdo(Request $request, $id)
+    {
+        $admin = Auth::user();
+
+        if ($admin->complex_id != $id) {
+            abort(403, 'غير مصرح لك بدخول هذا المجمع');
+        }
+
+        $complex = Complex::findOrFail($id);
+
+        $complexActivityIds = \App\Models\ComplexActivity::where('complex_id', $id)->pluck('id');
+
+        $activeSchedules = \App\Models\Schedule::whereIn('complex_activity_id', $complexActivityIds)
+            ->where('active', 1)
+            ->with('complexActivity.activity')
+            ->get();
+
+        $reservationCounts = \App\Models\Reservation::whereIn('schedule_id', $activeSchedules->pluck('id'))
+            ->where('statut', '!=', 'annulee')
+            ->selectRaw('schedule_id, COUNT(*) as total')
+            ->groupBy('schedule_id')
+            ->pluck('total', 'schedule_id');
+
+        $weekStart = $request->query('start')
+            ? \Carbon\Carbon::parse($request->query('start'))->startOfWeek(\Carbon\Carbon::SUNDAY)
+            : now()->startOfWeek(\Carbon\Carbon::SUNDAY);
+
+        $weekDays = [];
+        for ($i = 0; $i < 7; $i++) {
+            $weekDays[$i] = $weekStart->copy()->addDays($i);
+        }
+
+        $prevWeek = $weekStart->copy()->subDays(7)->format('Y-m-d');
+        $nextWeek = $weekStart->copy()->addDays(7)->format('Y-m-d');
+
+        $calendarDays = collect(range(0, 6))->mapWithKeys(function ($day) {
+            return [$day => collect()];
+        })->all();
+
+        foreach ($activeSchedules as $s) {
+            $slots = $s->time_slots;
+            if (is_string($slots)) {
+                $slots = json_decode($slots, true);
+            }
+            if (!is_array($slots)) {
+                $slots = [];
+            }
+            foreach ($slots as $slot) {
+                $day = $slot['day_number'] ?? null;
+                if ($day === null) {
+                    continue;
+                }
+                $calendarDays[$day]->push((object) [
+                    'schedule'       => $s,
+                    'start'          => $slot['start'] ?? '',
+                    'end'            => $slot['end'] ?? '',
+                    'color'          => $s->complexActivity->activity->color ?? '#0ea5e9',
+                    'activity_title' => $s->complexActivity->activity->title ?? '—',
+                    'reservations'   => $reservationCounts[$s->id] ?? 0,
+                ]);
+            }
+        }
+
+        foreach ($calendarDays as $day => $items) {
+            $calendarDays[$day] = $items->sortBy('start')->values();
+        }
+
+        return view('admin.programme_hebdo', compact(
+            'complex',
+            'activeSchedules',
+            'weekDays',
+            'calendarDays',
+            'prevWeek',
+            'nextWeek',
+            'weekStart'
+        ));
     }
 }

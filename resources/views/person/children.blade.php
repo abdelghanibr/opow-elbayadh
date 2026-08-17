@@ -51,8 +51,16 @@
             @foreach($children as $child)
                 <div class="col-md-6 col-lg-4">
                     <div class="dash-card">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <div>
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            @if($child->photo)
+                                <img src="{{ asset($child->photo) }}" alt="{{ $child->firstname }}"
+                                     style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:3px solid #d6f5e1;">
+                            @else
+                                <div style="width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,#d6f5e1,#a7f3d0); display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:900; color:#1b5e20; border:3px solid #d6f5e1;">
+                                    {{ mb_substr($child->firstname ?? 'ط', 0, 1) }}
+                                </div>
+                            @endif
+                            <div class="flex-grow-1">
                                 <h5 class="mb-0">{{ $child->firstname ?? '—' }} {{ $child->lastname ?? '' }}</h5>
                                 <small class="text-muted">
                                     {{ $child->birth_date ? \Carbon\Carbon::parse($child->birth_date)->age . ' سنة' : '—' }}

@@ -211,16 +211,21 @@ public function showStep($step)
             case 1:
                 $tuteurRule = $isChild ? 'required|string|max:50' : 'nullable|string|max:50';
 
-                $validated = $request->validate([
+                $rules = [
                     'firstname' => 'required|string|max:50',
                     'lastname' => 'required|string|max:50',
                   'birth_date' => 'required|date|before:-3 years',
                     'gender' => 'required',
                     'blood_type' => 'nullable|string|max:5',
-                    'profession' => 'nullable|string|max:100',
                     'handicap' => 'required' ,
                     'tuteur_fullname' =>  $tuteurRule,
-                ]);
+                ];
+
+                if (!$isChild) {
+                    $rules['profession'] = 'nullable|string|max:100';
+                }
+
+                $validated = $request->validate($rules);
 
                 $age = Carbon::parse($request->birth_date)->age;
                 $ageCat = $age <= 12 ? 1 : ($age <= 17 ? 2 : ($age <= 100 ? 3 : 4));

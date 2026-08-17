@@ -109,6 +109,7 @@
         </div>
 
         <!-- المهنة -->
+        @if(!($isChild ?? false))
         <div class="col-md-6 mb-3">
             <label class="form-label fw-bold" style="color:#082f57; font-size:0.92rem;">
                 <i class="fa-solid fa-briefcase" style="color:#12a86b; margin-left:6px;"></i>المهنة
@@ -127,6 +128,7 @@
                 <div class="form-error text-danger small">{{ $message }}</div>
             @enderror
         </div>
+        @endif
 
     </div>
 

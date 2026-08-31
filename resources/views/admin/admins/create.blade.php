@@ -5,8 +5,8 @@
     <div class="row justify-content-center">
         <div class="col-lg-6 col-md-8">
 
-            <div class="card-modern shadow-lg border-0 rounded-4 overflow-hidden">
-                <div class="card-header bg-gradient-dark text-white text-center py-4">
+            <div class="card-modern shadow-sm border-0 rounded-4 overflow-hidden">
+                <div class="card-header card-header-grad text-white text-center py-4">
                     <h3 class="fw-bold mb-0">➕ إضافة مسؤول جديد</h3>
                     <p class="small opacity-75 mt-2">أدخل بيانات المسؤول الجديد</p>
                 </div>
@@ -17,7 +17,7 @@
 
                         {{-- الاسم --}}
                         <div class="mb-4">
-                            <label class="form-label fw-semibold text-light" for="name">الاسم الكامل</label>
+                            <label class="form-label fw-semibold text-dark" for="name">الاسم الكامل</label>
                             <input type="text"
                                    id="name"
                                    name="name"
@@ -32,7 +32,7 @@
 
                         {{-- البريد --}}
                         <div class="mb-4">
-                            <label class="form-label fw-semibold text-light" for="email">البريد الإلكتروني</label>
+                            <label class="form-label fw-semibold text-dark" for="email">البريد الإلكتروني</label>
                             <input type="email"
                                    id="email"
                                    name="email"
@@ -47,7 +47,7 @@
 
                         {{-- اختيار النوع --}}
                         <div class="mb-4">
-                            <label class="form-label fw-semibold text-light" for="adminType">نوع المسؤول</label>
+                            <label class="form-label fw-semibold text-dark" for="adminType">نوع المسؤول</label>
                             <select name="type" id="adminType"
                                     class="form-select form-control-modern @error('type') is-invalid @enderror">
                                 <option value="admin" {{ old('type', 'admin') === 'admin' ? 'selected' : '' }}>
@@ -67,7 +67,7 @@
 
                         {{-- اختيار المجمّع --}}
                         <div class="mb-4">
-                            <label class="form-label fw-semibold text-light" for="adminComplex">المجمّع الرياضي التابع له</label>
+                            <label class="form-label fw-semibold text-dark" for="adminComplex">المجمّع الرياضي التابع له</label>
                             <select name="complex_id" id="adminComplex"
                                     class="form-select form-control-modern @error('complex_id') is-invalid @enderror">
                                 <option value="">— اختر المجمّع —</option>
@@ -90,7 +90,7 @@
 
                         {{-- كلمة المرور --}}
                         <div class="mb-4">
-                            <label class="form-label fw-semibold text-light" for="password">كلمة المرور</label>
+                            <label class="form-label fw-semibold text-dark" for="password">كلمة المرور</label>
                             <div class="input-group">
                                 <input type="password"
                                        id="password"
@@ -98,7 +98,7 @@
                                        class="form-control form-control-modern password-input @error('password') is-invalid @enderror"
                                        placeholder="كلمة مرور قوية (6 أحرف على الأقل)"
                                        required>
-                                <button type="button" class="btn btn-outline-light toggle-password">
+                                <button type="button" class="btn btn-outline-secondary toggle-password">
                                     <i class="bi bi-eye-slash"></i>
                                 </button>
                             </div>
@@ -109,7 +109,7 @@
 
                         {{-- تأكيد كلمة المرور --}}
                         <div class="mb-5">
-                            <label class="form-label fw-semibold text-light" for="password_confirmation">تأكيد كلمة المرور</label>
+                            <label class="form-label fw-semibold text-dark" for="password_confirmation">تأكيد كلمة المرور</label>
                             <div class="input-group">
                                 <input type="password"
                                        id="password_confirmation"
@@ -117,7 +117,7 @@
                                        class="form-control form-control-modern password-input"
                                        placeholder="أعد كتابة كلمة المرور"
                                        required>
-                                <button type="button" class="btn btn-outline-light toggle-password">
+                                <button type="button" class="btn btn-outline-secondary toggle-password">
                                     <i class="bi bi-eye-slash"></i>
                                 </button>
                             </div>
@@ -125,11 +125,11 @@
                         </div>
 
                         {{-- أزرار --}}
-                        <div class="d-flex gap-3 justify-content-end">
-                            <a href="{{ route('admins.index') }}" class="btn btn-outline-light btn-lg rounded-pill px-5 shadow-sm">
+                        <div class="d-flex flex-wrap gap-3 justify-content-end">
+                            <a href="{{ route('admins.index') }}" class="btn btn-outline-secondary btn-lg rounded-pill px-4 shadow-sm">
                                 إلغاء
                             </a>
-                            <button type="submit" class="btn btn-dark-glow btn-lg rounded-pill px-5 shadow-lg">
+                            <button type="submit" class="btn btn-primary btn-glow btn-lg rounded-pill px-4">
                                 💾 حفظ المسؤول
                             </button>
                         </div>
@@ -144,96 +144,98 @@
 
 
 
-{{-- ======================== DARK STYLES ======================== --}}
+{{-- ======================== STYLES MODERN CLAIR RESPONSIVE ======================== --}}
 <style>
     :root {
-        --dark-bg: #0f172a;
-        --dark-card: rgba(30, 41, 59, 0.75);
-        --primary-gradient: linear-gradient(135deg, #1e293b, #64748b);
-        --shadow-dark: 0 10px 30px rgba(0,0,0,0.4);
+        --primary: #4361ee;
+        --primary-2: #4cc9f0;
+        --primary-gradient: linear-gradient(135deg, #4361ee, #4cc9f0);
     }
 
     body {
-        background: var(--dark-bg);
-        color: #e2e8f0;
+        background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+        font-family: 'Segoe UI', system-ui, sans-serif;
     }
 
     .card-modern {
-        background: var(--dark-card);
-        backdrop-filter: blur(14px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: var(--shadow-dark);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     }
 
-    .bg-gradient-dark {
+    .card-header-grad {
         background: var(--primary-gradient);
     }
 
     .form-control-modern {
-        background: rgba(255,255,255,0.07);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 1rem;
-        padding: 0.9rem 1.2rem;
-        color: #e2e8f0;
-        transition: border-color .3s ease, box-shadow .3s ease, background .3s ease;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #e2e8f0;
+        border-radius: 0.9rem;
+        padding: 0.85rem 1.15rem;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s ease;
     }
 
     .form-control-modern::placeholder {
-        color: rgba(226, 232, 240, 0.45);
+        color: #94a3b8;
     }
 
     .form-control-modern:focus {
-        background: rgba(0,0,0,0.3);
-        border-color: rgba(148, 163, 184, 0.6);
-        box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.25);
-        color: #fff;
+        background: white;
+        transform: translateY(-2px);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.18);
     }
 
     /* --- États de validation instantanée --- */
     .form-control-modern.is-invalid {
-        border-color: #f87171 !important;
-        box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2) !important;
+        border-color: #e3342f !important;
+        background: #fff5f5 !important;
+        box-shadow: 0 0 0 4px rgba(227, 52, 47, 0.12) !important;
     }
 
     .form-control-modern.is-valid {
-        border-color: #4ade80 !important;
-        box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.18) !important;
+        border-color: #38a169 !important;
+        background: #f0fff4 !important;
+        box-shadow: 0 0 0 4px rgba(56, 161, 105, 0.12) !important;
     }
 
     .form-control-modern.is-invalid:focus {
-        box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.3) !important;
+        box-shadow: 0 0 0 4px rgba(227, 52, 47, 0.22) !important;
     }
 
     .form-control-modern.is-valid:focus {
-        box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.28) !important;
+        box-shadow: 0 0 0 4px rgba(56, 161, 105, 0.22) !important;
     }
 
     .input-group .form-control-modern {
-        border-radius: 0 1rem 1rem 0;
+        border-radius: 0 0.9rem 0.9rem 0;
     }
 
-    .input-group .btn {
-        border-radius: 1rem 0 0 1rem;
-        border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(255,255,255,0.07);
-        color: #e2e8f0;
+    .input-group .toggle-password {
+        border-radius: 0.9rem 0 0 0.9rem;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: var(--primary);
     }
 
     .toggle-password:hover {
-        background: rgba(255,255,255,0.15);
+        background: rgba(67, 97, 238, 0.08);
     }
 
-    .btn-dark-glow {
-        background: #1e293b;
+    .btn-glow {
+        background: var(--primary-gradient);
         color: white;
-        transition: 0.3s;
-        border: 1px solid #334155;
+        border: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 6px 18px rgba(67, 97, 238, 0.35);
     }
 
-    .btn-dark-glow:hover {
-        background: #334155;
+    .btn-glow:hover {
         transform: translateY(-3px);
-        box-shadow: 0 12px 25px rgba(0,0,0,0.5);
+        box-shadow: 0 10px 24px rgba(67, 97, 238, 0.45);
+        color: white;
     }
 
     .field-error {
@@ -247,6 +249,7 @@
 
     @media (max-width: 576px) {
         .card-body { padding: 1.75rem; }
+        .btn-lg { font-size: 0.95rem; padding-left: 1.5rem; padding-right: 1.5rem; }
     }
 </style>
 
@@ -254,7 +257,6 @@
 {{-- ======================== SCRIPT SHOW/HIDE PASSWORD + VALIDATION ======================== --}}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // ----- Affichage / masquage mot de passe -----
     document.querySelectorAll('.toggle-password').forEach(button => {
         button.addEventListener('click', function () {
             const input = this.closest('.input-group').querySelector('.password-input');
@@ -353,7 +355,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const isVerify = typeSel.value === 'verify_qr';
             if (isVerify) {
                 complexHint.textContent = '⚠️ إلزامي: يجب اختيار مجمع لمدقق QR.';
-                complexHint.style.color = '#fca5a5';
+                complexHint.style.color = '#d53f8c';
                 complexSel.setAttribute('required', 'required');
             } else {
                 complexHint.textContent = 'اتركه فارغا للمسؤول الكامل، أو اختر مجمعا للمسؤول المختص.';
@@ -364,7 +366,6 @@ document.addEventListener('DOMContentLoaded', function () {
         validateComplex();
     }
 
-    // ----- Validation instantanée -----
     if (nameEl)    nameEl.addEventListener('input', validateName);
     if (emailEl)   emailEl.addEventListener('input', validateEmail);
     if (passEl)    passEl.addEventListener('input', function () { validatePassword(); });
@@ -372,7 +373,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeSel)   { typeSel.addEventListener('change', refreshComplex); refreshComplex(); }
     if (complexSel) complexSel.addEventListener('change', validateComplex);
 
-    // ----- Validation avant soumission -----
     if (form) {
         form.addEventListener('submit', function (e) {
             validateName();

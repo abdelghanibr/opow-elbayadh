@@ -145,23 +145,20 @@
 <style>
     :root {
         --primary: #4361ee;
+        --primary-2: #4cc9f0;
         --primary-gradient: linear-gradient(135deg, #4361ee, #4cc9f0);
-        --glass: rgba(255, 255, 255, 0.4);
-        --shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-        --border-glass: 1px solid rgba(255, 255, 255, 0.5);
     }
 
     body {
-        background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+        background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
         font-family: 'Segoe UI', system-ui, sans-serif;
     }
 
     .card-modern {
-        background: var(--glass);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: var(--border-glass);
-        box-shadow: var(--shadow);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     }
 
     .bg-gradient-primary {
@@ -169,70 +166,72 @@
     }
 
     .form-control-modern {
-        background: rgba(255, 255, 255, 0.85);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        border-radius: 1rem;
-        padding: 0.9rem 1.2rem;
-        box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #e2e8f0;
+        border-radius: 0.9rem;
+        padding: 0.85rem 1.15rem;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
         transition: all 0.3s ease;
     }
 
     .form-control-modern::placeholder {
-        color: rgba(67, 80, 99, 0.5);
+        color: #94a3b8;
     }
 
     .form-control-modern:focus {
         background: white;
-        transform: translateY(-3px);
+        transform: translateY(-2px);
         border-color: var(--primary);
-        box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.2);
+        box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.18);
     }
 
     /* --- États de validation instantanée --- */
     .form-control-modern.is-invalid {
         border-color: #e3342f !important;
         background: #fff5f5 !important;
-        box-shadow: 0 0 0 4px rgba(227, 52, 47, 0.15) !important;
+        box-shadow: 0 0 0 4px rgba(227, 52, 47, 0.12) !important;
     }
 
     .form-control-modern.is-valid {
         border-color: #38a169 !important;
         background: #f0fff4 !important;
-        box-shadow: 0 0 0 4px rgba(56, 161, 105, 0.15) !important;
+        box-shadow: 0 0 0 4px rgba(56, 161, 105, 0.12) !important;
     }
 
     .form-control-modern.is-invalid:focus {
-        box-shadow: 0 0 0 4px rgba(227, 52, 47, 0.25) !important;
+        box-shadow: 0 0 0 4px rgba(227, 52, 47, 0.22) !important;
     }
 
     .form-control-modern.is-valid:focus {
-        box-shadow: 0 0 0 4px rgba(56, 161, 105, 0.25) !important;
+        box-shadow: 0 0 0 4px rgba(56, 161, 105, 0.22) !important;
     }
 
     .input-group .form-control-modern {
-        border-radius: 0 1rem 1rem 0;
+        border-radius: 0 0.9rem 0.9rem 0;
     }
 
-    .input-group .btn {
-        border-radius: 1rem 0 0 1rem;
-        border: 1px solid rgba(67, 97, 238, 0.2);
-        background: rgba(255, 255, 255, 0.85);
+    .input-group .toggle-password {
+        border-radius: 0.9rem 0 0 0.9rem;
+        border: 1px solid #e2e8f0;
+        background: #fff;
         color: var(--primary);
     }
 
     .toggle-password:hover {
-        background: rgba(67, 97, 238, 0.1);
+        background: rgba(67, 97, 238, 0.08);
     }
 
     .btn-glow {
         background: var(--primary-gradient);
         color: white;
-        transition: all 0.4s ease;
+        border: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 6px 18px rgba(67, 97, 238, 0.35);
     }
 
     .btn-glow:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 30px rgba(67, 97, 238, 0.4);
+        transform: translateY(-3px);
+        box-shadow: 0 10px 24px rgba(67, 97, 238, 0.45);
         color: white;
     }
 
@@ -246,7 +245,8 @@
     }
 
     @media (max-width: 576px) {
-        .card-body { padding: 2rem; }
+        .card-body { padding: 1.75rem; }
+        .btn-lg { font-size: 0.95rem; padding-left: 1.5rem; padding-right: 1.5rem; }
     }
 </style>
 {{-- ======================== SCRIPT SHOW/HIDE PASSWORD + VALIDATION ======================== --}}

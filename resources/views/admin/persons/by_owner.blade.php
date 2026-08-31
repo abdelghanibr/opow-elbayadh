@@ -26,12 +26,14 @@
             <thead class="table-dark">
                 <tr>
                     <th>#</th>
+                    <th>الصورة</th>
                     <th>الاسم</th>
                     <th>اللقب</th>
                     <th>تاريخ الميلاد</th>
                     <th>الجنس</th>
-                    <th>الفئة العمرية</th>
+                    <th>التصنيف</th>
                     <th>رقم الإجازة</th>
+                    <th>الاستمارة</th>
                 </tr>
             </thead>
 
@@ -39,6 +41,18 @@
             @foreach($persons as $p)
                 <tr>
                     <td>{{ $loop->iteration }}</td>
+                    <td>
+                        @if($p->photo)
+                            <img src="{{ asset($p->photo) }}"
+                                 alt="photo"
+                                 class="person-avatar"
+                                 data-bs-toggle="modal"
+                                 data-bs-target="#photoModal{{ $p->id }}">
+                        @else
+                            <img src="{{ asset('images/avatar-default.png') }}"
+                                 class="person-avatar">
+                        @endif
+                    </td>
                     <td class="fw-semibold">{{ $p->firstname }}</td>
                     <td>{{ $p->lastname }}</td>
                     <td>{{ $p->birth_date }}</td>
@@ -49,11 +63,36 @@
                             <span class="badge bg-danger">أنثى</span>
                         @endif
                     </td>
-                    <td>{{ $p->ageCategory->name ?? '—' }}</td>
+                    <td>{{ $p->study_level ?? '—' }}</td>
                     <td class="fw-bold text-success">
                         {{ $p->license_number ?? '—' }}
                     </td>
+                    <td>
+                        @if(!empty($p->birth_certificate))
+                            <a href="{{ $p->birth_certificate }}" target="_blank"
+                               class="btn btn-sm btn-outline-success rounded-pill"
+                               title="عرض الإستمارة">
+                                📄
+                            </a>
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
                 </tr>
+
+                @if($p->photo)
+                <div class="modal fade" id="photoModal{{ $p->id }}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered modal-sm">
+                        <div class="modal-content">
+                            <div class="modal-body text-center">
+                                <img src="{{ asset($p->photo) }}"
+                                     class="img-fluid rounded">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
             @endforeach
             </tbody>
 
@@ -71,6 +110,18 @@
 <style>
 table.dataTable { font-size: 13px; }
 table thead th { white-space: nowrap; }
+.person-avatar {
+    width: 45px;
+    height: 45px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #e5e7eb;
+    cursor: pointer;
+    transition: transform .2s ease;
+}
+.person-avatar:hover {
+    transform: scale(1.08);
+}
 </style>
 @endpush
 

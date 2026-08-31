@@ -250,6 +250,9 @@
         } else {
             $dashboardRoute = route('admin.dashboard');
         }
+    } elseif ($user->type === 'verify_qr') {
+        // مدقق QR → صفحة مسح التذاكر
+        $dashboardRoute = route('tickets.verify-qr');
     } else {
         // مستخدمون آخرون
         $dashboardRoute = match($user->type){
@@ -266,6 +269,7 @@
     // -------------------------
     $profileRoute = match($user->type){
         'admin'      => route('admin.profile.edit'),
+        'verify_qr'  => route('admin.profile.edit'),
         'club'       => route('club.profile.edit'),
         'person'     => route('person.profile.edit'),
         'company',
@@ -288,6 +292,7 @@
     // -------------------------
     $logoutRoute = match($user->type){
         'admin'      => 'admin.logout',
+        'verify_qr'  => 'admin.logout',
         'club'       => 'club.logout',
         'company',
         'entreprise' => 'entreprise.logout',

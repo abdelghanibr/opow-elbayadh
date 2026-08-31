@@ -73,7 +73,7 @@ public function showRegister(Request $request)
             'email'       => 'required|email|unique:users',
             'password'    => 'required|confirmed|min:8',
             'complex_id'  => 'required|exists:complexes,id',
-            'birth_date'  => 'required|date|before:-3 years',
+            'birth_date'  => 'nullable|date|before:-3 years',
             'blood_type'  => 'nullable|string|max:5',
             'profession'  => 'nullable|string|max:100',
               'nin' => [
@@ -115,8 +115,11 @@ $request->validate([
         ]);
 
         // حساب فئة العمر
-        $age = \Carbon\Carbon::parse($request->birth_date)->age;
-        $ageCat = $age <= 12 ? 1 : ($age <= 17 ? 2 : ($age <= 100 ? 3 : 4));
+        $ageCat = 3;
+        if ($request->filled('birth_date')) {
+            $age = \Carbon\Carbon::parse($request->birth_date)->age;
+            $ageCat = $age <= 12 ? 1 : ($age <= 17 ? 2 : ($age <= 100 ? 3 : 4));
+        }
 
         // إنشاء سجل Person للشخص
         Person::create([

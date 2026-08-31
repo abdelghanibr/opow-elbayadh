@@ -47,6 +47,9 @@ class TicketPaymentController extends Controller
             'phone'          => 'required|string|max:20',
             'identity_number'=> 'required|string|max:20',
             'age'            => 'required|integer|min:5|max:120',
+            'privacy_policy' => 'accepted',
+        ], [
+            'privacy_policy.accepted' => 'يجب الموافقة على الشروط والأحكام وسياسة الخصوصية',
         ]);
 
         $match    = MatchModel::with(['homeTeam', 'awayTeam', 'complex'])->findOrFail($request->match_id);

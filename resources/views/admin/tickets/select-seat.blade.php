@@ -139,9 +139,43 @@
                         </div>
                     </div>
 
+                    <div class="legal-zone-ticket mt-4">
+                        <div class="legal-card-ticket">
+                            <h5 class="legal-title-ticket"><i class="fa-solid fa-shield-halved"></i> الشروط والأحكام العامة وحماية المعطيات الشخصية</h5>
+
+                            <div class="legal-text-ticket">
+                                <p>
+                                    أوافق على
+                                    <a href="{{ route('legal.terms') }}" target="_blank" class="legal-link-ticket">الشروط والأحكام العامة</a>
+                                    لاستعمال المنصة والخدمات المقدمة من طرف ديوان المركب المتعدد الرياضات لولاية البيض، وألتزم باحترام القانون الداخلي للمركب.
+                                </p>
+
+                                <p>
+                                    أتعهد بأن جميع المعلومات المصرح بها في هذه الاستمارة صحيحة ودقيقة، وأتحمل كامل المسؤولية في حال ثبوت خلاف ذلك.
+                                </p>
+
+                                <p>
+                                    أوافق على جمع ومعالجة معطياتي الشخصية واستعمالها حصريًا في إطار تسيير الانخراطات والخدمات الرياضية وفقًا لأحكام
+                                    <a href="{{ route('legal.privacy') }}" target="_blank" class="legal-link-ticket">سياسة الخصوصية (القانون 18-07)</a>
+                                    المتعلق بحماية الأشخاص الطبيعيين في معالجة المعطيات ذات الطابع الشخصي.
+                                </p>
+                            </div>
+
+                            <div class="form-check legal-check-ticket mt-3">
+                                <input class="form-check-input" type="checkbox" name="privacy_policy" id="ticket_privacy" value="1" required>
+                                <label class="form-check-label fw-bold" for="ticket_privacy">
+                                    أؤكد أنني قرأت وفهمت الشروط والأحكام العامة وسياسة الخصوصية، وأوافق على ما ورد فيهما، وأتحمل مسؤولية صحة جميع المعلومات التي أدخلتها.
+                                </label>
+                                <div class="invalid-feedback-ticket d-none" id="ticketPrivacyError">
+                                    يجب الموافقة على الشروط والأحكام وسياسة الخصوصية
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-actions mt-4">
                         <button type="button" onclick="goBack()" class="back-btn"><i class="fa-solid fa-arrow-right"></i> العودة</button>
-                        <button type="submit" class="submit-btn"><i class="fa-solid fa-credit-card"></i> المتابعة إلى الدفع</button>
+                        <button type="submit" class="submit-btn" id="submitBtn"><i class="fa-solid fa-credit-card"></i> المتابعة إلى الدفع</button>
                     </div>
                 </form>
             </div>
@@ -283,6 +317,57 @@ body { font-family: "Cairo", sans-serif !important; }
 }
 .submit-btn:hover { transform: translateY(-3px); box-shadow: 0 14px 32px rgba(18,168,107,0.35); }
 
+/* ===== LEGAL ZONE ===== */
+.legal-zone-ticket { direction: rtl; }
+.legal-card-ticket {
+    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    border: 2px solid #bae6fd;
+    border-radius: 16px;
+    padding: 20px 22px;
+}
+.legal-title-ticket {
+    font-size: 1rem; font-weight: 900; color: #082f57;
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+.legal-title-ticket i { color: #082f57; font-size: 1.1rem; }
+.legal-text-ticket {
+    font-size: 0.85rem; color: #334155; line-height: 1.9; font-weight: 600;
+}
+.legal-text-ticket p { margin-bottom: 10px; }
+.legal-text-ticket p:last-child { margin-bottom: 0; }
+.legal-link-ticket {
+    color: #0d6efd; font-weight: 700; text-decoration: underline;
+    font-size: inherit; word-break: break-word;
+}
+.legal-link-ticket:hover { color: #0a58ca; }
+.legal-check-ticket {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: #fff; padding: 14px 16px; border-radius: 12px;
+    border: 2px solid #e2e8f0; transition: border-color 0.2s, background 0.2s;
+    direction: rtl;
+}
+.legal-check-ticket.checked-ticket { border-color: #12a86b; background: #f0fdf4; }
+.legal-check-ticket .form-check-input {
+    flex: 0 0 auto; margin-top: 4px; width: 18px; height: 18px; cursor: pointer;
+    accent-color: #12a86b; margin-left: 10px; margin-right: 0;
+}
+.legal-check-ticket .form-check-label {
+    flex: 1; font-size: 0.85rem; line-height: 1.7; cursor: pointer; color: #334155;
+    word-break: break-word; text-align: right; padding-right: 0;
+}
+.invalid-feedback-ticket {
+    display: block; width: 100%; margin-top: 8px; padding-right: 28px;
+    color: #dc2626; font-size: 0.82rem; font-weight: 700;
+}
+.legal-check-ticket.is-invalid-ticket { border-color: #dc2626; background: #fef2f2; }
+
+@media (max-width: 576px) {
+    .legal-card-ticket { padding: 16px 14px; }
+    .legal-text-ticket { font-size: 0.8rem; }
+    .legal-check-ticket .form-check-label { font-size: 0.8rem; }
+    .legal-check-ticket .form-check-input { width: 16px; height: 16px; }
+}
+
 @media (max-width: 767px) {
     .ticket-header { padding: 18px 16px; }
     .ticket-frame-body { padding: 16px; }
@@ -331,5 +416,37 @@ function goBack() {
     document.getElementById('stepIndicator2').classList.remove('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+document.getElementById('userForm').addEventListener('submit', function(e) {
+    var privacy = document.getElementById('ticket_privacy');
+    var errBox = document.getElementById('ticketPrivacyError');
+    var checkCard = privacy.closest('.legal-check-ticket');
+
+    if (!privacy.checked) {
+        e.preventDefault();
+        privacy.classList.add('is-invalid');
+        checkCard.classList.add('is-invalid-ticket');
+        errBox.classList.remove('d-none');
+        privacy.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+    }
+
+    privacy.classList.remove('is-invalid');
+    checkCard.classList.remove('is-invalid-ticket');
+    errBox.classList.add('d-none');
+});
+
+document.getElementById('ticket_privacy').addEventListener('change', function() {
+    var errBox = document.getElementById('ticketPrivacyError');
+    var checkCard = this.closest('.legal-check-ticket');
+    if (this.checked) {
+        this.classList.remove('is-invalid');
+        checkCard.classList.remove('is-invalid-ticket');
+        checkCard.classList.add('checked-ticket');
+        errBox.classList.add('d-none');
+    } else {
+        checkCard.classList.remove('checked-ticket');
+    }
+});
 </script>
 @endsection

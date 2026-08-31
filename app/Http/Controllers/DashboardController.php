@@ -146,6 +146,7 @@ protected function buildReservationStats($userId)
     return view('admin.dashboard', [
         'dossiersCount' => Dossier::count(),
         'clubsCount' => Club::count(),
+        'companiesCount' => Club::where('entity_type', 'company')->count(),
         'personsCount' => Person::count()
     ]);
 }

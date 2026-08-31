@@ -59,8 +59,8 @@ class AdminAuthController extends Controller
 
             $user = Auth::user();
 
-            // التأكد من أن المستخدم Admin
-            if ($user->type !== 'admin') {
+            // التأكد من أن المستخدم Admin أو مدقق QR
+            if (!in_array($user->type, ['admin', 'verify_qr'])) {
                 Auth::logout();
                 return back()->withErrors([
                     'email' => '⛔ هذا الحساب غير مصرح له بالدخول إلى لوحة الإدارة',
@@ -71,7 +71,14 @@ class AdminAuthController extends Controller
             $request->session()->regenerate();
 
             // ================================
-            // 💡 التحقق من complex_id
+            // 🎫 مدقق QR → صفحة مسح التذاكر مباشرة
+            // ================================
+            if ($user->type === 'verify_qr') {
+                return redirect()->route('tickets.verify-qr');
+            }
+
+            // ================================
+            // 💡 التحقق من complex_id (مسؤول كامل / مختص)
             // ================================
           if (empty($user->complex_id)) {
     // لا يوجد complex → الذهاب للوحة العامة

@@ -35,8 +35,10 @@
                     <th>اللقب</th>
                     <th>العمر</th>
                     <th>الجنس</th>
+                    <th>صفة اللاعب</th>
                     <th>التصنيف</th>
-                      <th>رقم الإجازة</th>
+                    <th>رقم الإجازة</th>
+                    <th>الاستمارة</th>
                     <th>إجراءات</th>
                 </tr>
             </thead>
@@ -65,7 +67,20 @@
                     <td>{{ \Carbon\Carbon::parse($p->birth_date)->age }} سنة</td>
                     <td>{{ $p->gender }}</td>
                     <td>{{ $p->education }}</td>
+                    <td>{{ $p->study_level ?? '—' }}</td>
   <td>{{ $p->license_number }}</td>
+                    {{-- الاستمارة --}}
+                    <td>
+                        @if(!empty($p->birth_certificate))
+                            <a href="{{ $p->birth_certificate }}" target="_blank"
+                               class="btn btn-sm btn-outline-success rounded-pill"
+                               title="عرض الإستمارة">
+                                📄
+                            </a>
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
                     {{-- الإجراءات --}}
                     <td>
                         <a href="{{ route('club.persons.edit', $p->id) }}"

@@ -49,52 +49,23 @@ use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\MatchController;
 use App\Http\Controllers\Admin\TicketController;
 use App\Http\Controllers\Admin\DeviceController;
+use App\Http\Controllers\TicketPaymentController;
 
 use App\Http\Controllers\Api\RemotePersonController;
 
-// PoolClosureController removed — routes commented out below
+use App\Http\Controllers\PoolClosureController;
 
 
 
-use Illuminate\Support\Facades\Response;
-use App\Models\News;
-use App\Models\Event;
-use App\Models\Activity;
-
-Route::get('/sitemap.xml', function () {
-    $news = class_exists(News::class)
-        ? News::query()->latest('updated_at')->take(500)->get()
-        : collect();
-
-    $events = class_exists(Event::class)
-        ? Event::query()->latest('updated_at')->take(300)->get()
-        : collect();
-
-    $activities = class_exists(Activity::class)
-        ? Activity::query()->latest('updated_at')->take(300)->get()
-        : collect();
-
-    $xml = view('seo.sitemap', compact('news', 'events', 'activities'))->render();
-
-    return Response::make($xml, 200, [
-        'Content-Type' => 'application/xml; charset=UTF-8',
-    ]);
-})->name('sitemap');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+use App\Http\Controllers\Admin\PersonAssuranceController;
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/assurances', [PersonAssuranceController::class, 'index'])->name('assurances.index');
+    Route::get('/assurances/data', [PersonAssuranceController::class, 'data'])->name('assurances.data');
+    Route::get('/assurances/candidates-data', [PersonAssuranceController::class, 'candidatesData'])->name('assurances.candidates-data');
+    Route::post('/assurances/store-selected', [PersonAssuranceController::class, 'storeSelected'])->name('assurances.store-selected');
+    Route::post('/assurances/bulk-assure', [PersonAssuranceController::class, 'bulkAssure'])->name('assurances.bulk-assure');
+    Route::post('/assurances/print-selected', [PersonAssuranceController::class, 'printSelected'])->name('assurances.print-selected');
+});
 
 Route::get(
     '/api/complex/{complex}/persons',
@@ -114,13 +85,13 @@ Route::post('/payment/callback', [PaymentController::class, 'callback'])
 
 /*
  | Guiddini / SATIM redirect (GET)
- | يحتوي ?order_number=XXXX
+ | ÙŠØ­ØªÙˆÙŠ ?order_number=XXXX
  */
 Route::get('/payment/return', [PaymentController::class, 'verify'])
     ->name('payment.verify');
 
 /*
- | صفحة النتيجة النهائية
+ | ØµÙØ­Ø© Ø§Ù„Ù†ØªÙŠØ¬Ø© Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠØ©
  */
 Route::get('/payment/result', function () {
     return view('payments.result');
@@ -142,7 +113,7 @@ Route::post('/payment/receipt/email/{orderId}', [PaymentController::class, 'send
 |--------------------------------------------------------------------------
 */
 Route::get('/personnes', [PersonneController::class, 'index']);
-// صفحة تأكيد إعادة تعيين كلمة المرور
+// ØµÙØ­Ø© ØªØ£ÙƒÙŠØ¯ Ø¥Ø¹Ø§Ø¯Ø© ØªØ¹ÙŠÙŠÙ† ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 
 //Route::get('/', function () {
@@ -160,7 +131,7 @@ Route::get('/complexes/filter/{type}', [HomeController::class, 'filterAjax'])
  //  Route::get('/complexes', [ComplexeController::class, 'index'])
    //     ->name('complexes.index');
 
-// صفحة تأكيد إعادة تعيين كلمة المرور
+// ØµÙØ­Ø© ØªØ£ÙƒÙŠØ¯ Ø¥Ø¹Ø§Ø¯Ø© ØªØ¹ÙŠÙŠÙ† ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±
 //Route::get('/home', [HomeController::class, 'index'])->name('home');
 
 /*Route::get('/', function () {
@@ -169,33 +140,6 @@ Route::get('/complexes/filter/{type}', [HomeController::class, 'filterAjax'])
 */
 Route::get('/tickets/select-seat/{id}', [MatchController::class, 'selectSeat'])
     ->name('tickets.select-seat');
-
-Route::post('/tickets/confirm-pay', [\App\Http\Controllers\TicketPaymentController::class, 'confirmAndPay'])
-    ->name('ticket.confirm.pay');
-
-Route::get('/tickets/pay', [\App\Http\Controllers\TicketPaymentController::class, 'showTicketPay'])
-    ->name('ticket.pay.show');
-
-Route::post('/tickets/payment/initiate', [\App\Http\Controllers\TicketPaymentController::class, 'initiatePayment'])
-    ->name('ticket.payment.initiate');
-
-Route::get('/tickets/payment/verify', [\App\Http\Controllers\TicketPaymentController::class, 'verify'])
-    ->name('ticket.payment.verify');
-
-Route::get('/tickets/print/{id}', [\App\Http\Controllers\TicketPaymentController::class, 'printTicket'])
-    ->name('ticket.print');
-
-Route::get('/tickets/result/{id}', [\App\Http\Controllers\TicketPaymentController::class, 'showResult'])
-    ->name('ticket.show-result');
-
-Route::post('/tickets/receipt/email/{id}', [\App\Http\Controllers\TicketPaymentController::class, 'sendTicketReceiptEmail'])
-    ->name('ticket.receipt.email');
-
-Route::get('/tickets/verify-qr', [\App\Http\Controllers\TicketPaymentController::class, 'showVerifyQR'])
-    ->name('ticket.verify-qr');
-
-Route::post('/tickets/check-qr', [\App\Http\Controllers\TicketPaymentController::class, 'checkQR'])
-    ->name('ticket.check-qr');
 
 Route::post('/tickets/confirm', [TicketController::class, 'confirm'])
     ->name('tickets.confirm');
@@ -206,6 +150,12 @@ Route::get('/matches/public', [MatchController::class, 'publicMatches'])
 
 Route::get('/tickets/reserve/{id}', [TicketController::class, 'reserve'])
      ->name('tickets.reserve');
+
+Route::get('/tickets/verify-qr', [TicketPaymentController::class, 'showVerifyQR'])
+     ->name('tickets.verify-qr');
+
+Route::post('/tickets/check-qr', [TicketPaymentController::class, 'checkQR'])
+     ->name('ticket.check-qr');
 
   Route::get('/events/{id}', [EventController::class, 'show'])
     ->whereNumber('id')
@@ -249,10 +199,9 @@ Route::get('/person/login', [PersonAuthController::class, 'showLogin'])->name('p
 Route::post('/person/login', [PersonAuthController::class, 'login'])->name('person.login.post');
 Route::get('/person/register', [PersonAuthController::class, 'showRegister'])->name('person.register');
 Route::post('/person/register', [PersonAuthController::class, 'register'])->name('person.register.post');
-
-// Check Email (AJAX)
 Route::get('/person/check-email', [PersonAuthController::class, 'checkEmail'])->name('person.check-email');
 Route::get('/auth/check-email', [PersonAuthController::class, 'checkEmail'])->name('auth.check-email');
+Route::get('/person/dashboard', fn()=>view('person.dashboard'))->middleware('auth')->name('person.dashboard');
 
 // Logout Person
 Route::post('/person/logout', function () {
@@ -303,7 +252,7 @@ Route::post('/password/reset', [ResetPasswordController::class, 'reset'])
 
 
 
-// ⭐ Dashboard Person
+// â­ Dashboard Person
 Route::middleware(['auth','person'])->group(function () {
     Route::get('/person/dashboard', [DashboardController::class, 'index'])->name('person.dashboard');
 
@@ -312,11 +261,11 @@ Route::get('/person/profile/edit', [RegisterController::class, 'edit'])->name('p
  Route::put('/person/profile/update', [RegisterController::class, 'update'])
         ->name('person.profile.update');
 
-    // Children
-    Route::get('/person/children', [ProfileController::class, 'children'])->name('children.index');
-    Route::post('/person/children', [ProfileController::class, 'storeChild'])->name('children.store');
-    Route::get('/person/children/{person}/edit', [ProfileController::class, 'editChild'])->name('children.edit');
-    Route::get('/person/children/{person}/reserve', [ProfileController::class, 'reserveChild'])->name('children.reserve');
+// ðŸ‘¶ Mes enfants
+Route::get('/person/children', [ProfileController::class, 'children'])->name('children.index');
+Route::post('/person/children', [ProfileController::class, 'storeChild'])->name('children.store');
+Route::get('/person/children/{person}/edit', [ProfileController::class, 'editChild'])->name('children.edit');
+Route::get('/person/children/{person}/reserve', [ProfileController::class, 'reserveChild'])->name('children.reserve');
 
 Route::get('/dossier/{dossier}/print', 
     [DossierController::class, 'print'])
@@ -342,7 +291,7 @@ Route::get('/dossiers/{id}/autorisation-parentale/download', [DossierController:
 
 });
 
-// ⭐ Dashboard Club
+// â­ Dashboard Club
 
 Route::middleware(['auth','club'])->group(function ()
  {
@@ -386,7 +335,7 @@ Route::middleware(['auth','club'])->group(function ()
      //   ->name('reservation.select_type');
 });
 
-// ⭐ Dashboard Entreprise
+// â­ Dashboard Entreprise
 Route::middleware(['auth','entreprise'])->group(function () {
     Route::get('/entreprise/dashboard', [DashboardController::class, 'index'])->name('entreprise.dashboard');
     
@@ -397,11 +346,11 @@ Route::middleware(['auth','entreprise'])->group(function () {
     Route::get('/entreprise/persons/edit/{id}', [PersonController::class, 'edit'])
         ->name('entreprise.persons.edit');
 
-    // 📌 تحديث
+    // ðŸ“Œ ØªØ­Ø¯ÙŠØ«
     Route::post('/entreprise/persons/update/{id}', [PersonController::class, 'update'])
         ->name('entreprise.persons.update');
 
-    // 📌 حذف
+    // ðŸ“Œ Ø­Ø°Ù
     Route::delete('/entreprise/persons/delete/{id}', [PersonController::class, 'destroy'])
         ->name('entreprise.persons.delete');    
         
@@ -429,7 +378,7 @@ Route::middleware(['auth','entreprise'])->group(function () {
 });
 
 
-// ⭐ Dashboard Admin
+// â­ Dashboard Admin
 
 Route::get('/persons/by-owner/{id}', [PersonController::class, 'byOwner']
 )->name('persons.byOwner');    
@@ -440,12 +389,8 @@ Route::middleware(['auth','admin'])->group(function () {
 
 
 
-
-
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
 
-    // PoolClosureController routes removed — controller does not exist
-    /*
     Route::get('/pool-closures', [PoolClosureController::class, 'index'])
         ->name('pool-closures.index');
 
@@ -469,16 +414,14 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     Route::post('/pool-closures/{poolClosure}/apply', [PoolClosureController::class, 'apply'])
         ->name('pool-closures.apply');
-    */
-
-    // ---------------------------
-    //         SETTINGS
-    // ---------------------------
-    Route::get('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])
-        ->name('admin.settings.index');
-    Route::post('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])
-        ->name('admin.settings.update');
 });
+
+
+
+
+
+
+
 
 
 
@@ -488,9 +431,7 @@ Route::post('/reservations/{reservation}/toggle-payment',
     [ReservationController::class, 'togglePayment'])
     ->name('reservations.togglePayment');
 
-// Check Season (AJAX)
-Route::get('/reservations/{id}/check-season/{seasonId}', [ReservationController::class, 'checkSeason'])
-    ->name('reservations.check-season');
+
 
      Route::resource('devices', DeviceController::class);
 
@@ -543,6 +484,9 @@ Route::post('/update-assurance', [PersonController::class, 'updateAssurance']);
 Route::get('/admin/dashboard_complex/{id}', [App\Http\Controllers\AdminController::class, 'dashboardComplex'])
     ->name('admin.dashboard_complex');
 
+Route::get('/admin/complex/{id}/programme-hebdo', [App\Http\Controllers\AdminController::class, 'programmeHebdo'])
+    ->name('admin.complex.programme');
+
 
 Route::resource('news', NewsController::class)->except(['show']);;
 Route::resource('events', EventController::class)->except(['show']);;
@@ -555,9 +499,9 @@ Route::resource('activity-categories',ActivityCategoryController::class );
 Route::resource('seasons', SeasonController::class);
 
 
- Route::resource('reservations', \App\Http\Controllers\ReservationController::class);
+ Route::resource('reservations', \App\Http\Controllers\ReservationController::class)->except(['show', 'edit', 'update']);
 
-// جدول المواعيد المحجوزة
+// Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ù…ÙˆØ§Ø¹ÙŠØ¯ Ø§Ù„Ù…Ø­Ø¬ÙˆØ²Ø©
 Route::get('/admin/schedules/occupied', 
     [\App\Http\Controllers\Admin\ScheduleController::class, 'occupiedSlots']
 )->name('admin.schedules.occupied');
@@ -574,6 +518,8 @@ Route::get('/admin/schedules/occupied-slots', [\App\Http\Controllers\Admin\Sched
     Route::get('admins/edit/{id}', [AdminController::class, 'adminsEdit'])->name('admins.edit');
     Route::post('admins/update/{id}', [AdminController::class, 'adminsUpdate'])->name('admins.update');
     Route::delete('admins/delete/{id}', [AdminController::class, 'adminsDelete'])->name('admins.delete');
+   
+    Route::get('/admin/dashboard', fn()=>view('admin.dashboard'))->name('admin.dashboard');
 
     //dossier et validation
     Route::get('/admin/dossiers', [DossierController::class, 'index'])->name('admin.dossiers.index');
@@ -592,11 +538,17 @@ Route::get('/admin/schedules/occupied-slots', [\App\Http\Controllers\Admin\Sched
         ->name('admin.clubs.reject');
 
 Route::post('admin/clubs/{id}/note', [ClubController::class, 'note'])->name('admin.clubs.note');
-
 Route::delete('/admin/clubs/{id}', [ClubController::class, 'destroy'])->name('admin.clubs.destroy');
 
+// entreprises
+Route::get('/admin/companies', [ClubController::class, 'companies'])->name('admin.companies.index');
+Route::get('/admin/companies/{id}/approve', [ClubController::class, 'approveCompany'])->name('admin.companies.approve');
+Route::get('/admin/companies/{id}/reject', [ClubController::class, 'rejectCompany'])->name('admin.companies.reject');
+Route::post('admin/companies/{id}/note', [ClubController::class, 'noteCompany'])->name('admin.companies.note');
+Route::delete('/admin/companies/{id}', [ClubController::class, 'destroyCompany'])->name('admin.companies.destroy');
+
 //activite et complex et pricing pla 
-// gestion des activités
+// gestion des activitÃ©s
     Route::get('/admin/activities', [ActivitysController::class, 'index'])->name('admin.activities.index');
     Route::get('/admin/activities/create', [ActivitysController::class, 'create'])->name('admin.activities.create');
     Route::post('/admin/activities', [ActivitysController::class, 'store'])->name('admin.activities.store');
@@ -621,7 +573,7 @@ Route::get('/admin/get-complex-activity', function (Request $request) {
     ]);
 })->name('admin.getComplexActivity');
 
-// gestion des capacités
+// gestion des capacitÃ©s
 // Capacities Management
 Route::get('/admin/capacities', [CapacityController::class, 'index'])
     ->name('admin.capacities.index');
@@ -649,14 +601,14 @@ Route::delete('/admin/capacities/{id}', [CapacityController::class, 'destroy'])
 
     Route::post('/admin/complexes', [ComplexController::class, 'store'])
         ->name('admin.complexes.store');
-    // تعديل مركب
+    // ØªØ¹Ø¯ÙŠÙ„ Ù…Ø±ÙƒØ¨
     Route::get('/admin/complexes/{id}/edit', [ComplexController::class, 'edit'])
         ->name('admin.complexes.edit');
 
     Route::put('/admin/complexes/{id}', [ComplexController::class, 'update'])
         ->name('admin.complexes.update');
 
-    // حذف مركب
+    // Ø­Ø°Ù Ù…Ø±ÙƒØ¨
     Route::delete('/admin/complexes/{id}', [ComplexController::class, 'destroy'])
         ->name('admin.complexes.destroy');
 
@@ -668,12 +620,23 @@ Route::delete('/admin/capacities/{id}', [CapacityController::class, 'destroy'])
     Route::get('/admin/pricing/{id}/edit', [PricingsPlanController::class, 'edit'])->name('admin.pricing_plans.edit');
     Route::put('/admin/pricing/{id}', [PricingsPlanController::class, 'update'])->name('admin.pricing_plans.update');
     Route::delete('/admin/pricing/{id}', [PricingsPlanController::class, 'destroy'])->name('admin.pricing_plans.destroy');
-// mise à jour ملاحظة dossier
+// mise Ã  jour Ù…Ù„Ø§Ø­Ø¸Ø© dossier
 
 Route::post(
     'admin/dossiers/{dossier}/note',
     [DossierController::class, 'updateNote']
 )->name('admin.dossiers.note');
+
+Route::delete('/admin/dossiers/{id}', [DossierController::class, 'destroy'])->name('admin.dossiers.destroy');
+
+// 👥 حسابات بدون ملف (تنظيف الحسابات غير المكتملة)
+Route::get('/admin/accounts-without-dossiers', [AdminController::class, 'accountsWithoutDossiers'])
+    ->name('admin.accounts.no-dossier');
+Route::delete('/admin/accounts-without-dossiers/delete-all', [AdminController::class, 'destroyAllOrphanAccounts'])
+    ->name('admin.accounts.destroy-all');
+Route::delete('/admin/accounts-without-dossiers/{user}', [AdminController::class, 'destroyOrphanAccount'])
+    ->name('admin.accounts.destroy')
+    ->whereNumber('user');
 
 
 
@@ -682,21 +645,8 @@ Route::resource('/admin/age-categories', AgeCategoryController::class);
     ->middleware('auth')
     ->name('admin.dashboard');
 
-    // Assurances
-    Route::get('/admin/assurances', [\App\Http\Controllers\Admin\PersonAssuranceController::class, 'index'])->name('admin.assurances.index');
-    Route::get('/admin/assurances/data', [\App\Http\Controllers\Admin\PersonAssuranceController::class, 'data'])->name('admin.assurances.data');
-    Route::get('/admin/assurances/candidates-data', [\App\Http\Controllers\Admin\PersonAssuranceController::class, 'candidatesData'])->name('admin.assurances.candidates-data');
-    Route::post('/admin/assurances/store-selected', [\App\Http\Controllers\Admin\PersonAssuranceController::class, 'storeSelected'])->name('admin.assurances.store-selected');
-    Route::post('/admin/assurances/bulk-assure', [\App\Http\Controllers\Admin\PersonAssuranceController::class, 'bulkAssure'])->name('admin.assurances.bulk-assure');
-    Route::post('/admin/assurances/print-selected', [\App\Http\Controllers\Admin\PersonAssuranceController::class, 'printSelected'])->name('admin.assurances.print-selected');
-
-    // Accounts without dossiers
-    Route::get('/admin/accounts-without-dossiers', [AdminController::class, 'accountsWithoutDossiers'])->name('admin.accounts.no-dossier');
-    Route::delete('/admin/accounts-without-dossiers/delete-all', [AdminController::class, 'destroyAllOrphanAccounts'])->name('admin.accounts.destroy-all');
-    Route::delete('/admin/accounts-without-dossiers/{user}', [AdminController::class, 'destroyOrphanAccount'])->name('admin.accounts.destroy')->whereNumber('user');
-
-    // Weekly programme
-    Route::get('/admin/complex/{id}/programme-hebdo', [AdminController::class, 'programmeHebdo'])->name('admin.complex.programme');
+Route::get('/admin/dashboard/complexes/print', [AdminController::class, 'printComplexes'])
+    ->name('admin.complexes.print');
 
 });
 
@@ -759,12 +709,12 @@ Route::get('/activities', function () {
 Route::get('/activities/create', [ActivityController::class, 'create'])->name('activities.create');
 Route::post('/activities/store', [ActivityController::class, 'store'])->name('activities.store');
 
-// يجب أن تكون تحت المسارات فوق 👇
+// ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† ØªØ­Øª Ø§Ù„Ù…Ø³Ø§Ø±Ø§Øª ÙÙˆÙ‚ ðŸ‘‡
 
 Route::get('/activities/register/{id}', [ActivityController::class, 'register'])->name('activities.register');
 Route::get('/my-activities', [ActivityController::class, 'myActivities'])->name('my.activities');
 
-// ⚠️ تعديل/حذف تكون دائمًا آخر شيء
+// âš ï¸ ØªØ¹Ø¯ÙŠÙ„/Ø­Ø°Ù ØªÙƒÙˆÙ† Ø¯Ø§Ø¦Ù…Ù‹Ø§ Ø¢Ø®Ø± Ø´ÙŠØ¡
 Route::get('/activities/{id}/edit', [ActivityController::class, 'edit'])->name('activities.edit');
 Route::put('/activities/{id}', [ActivityController::class, 'update'])->name('activities.update');
 Route::delete('/activities/{id}', [ActivityController::class, 'destroy'])->name('activities.destroy');
@@ -773,7 +723,7 @@ Route::delete('/activities/{id}', [ActivityController::class, 'destroy'])->name(
 
 
 
-    // تسجيل في نشاط معين
+    // ØªØ³Ø¬ÙŠÙ„ ÙÙŠ Ù†Ø´Ø§Ø· Ù…Ø¹ÙŠÙ†
 
     Route::get('/activities', [App\Http\Controllers\ActivityController::class, 'index'])
         ->name('activities.index');
@@ -787,7 +737,7 @@ Route::delete('/activities/{id}', [ActivityController::class, 'destroy'])->name(
 
 
 
-    // صفحة أنشطتي
+    // ØµÙØ­Ø© Ø£Ù†Ø´Ø·ØªÙŠ
   
    Route::get('/complexes', [ComplexeController::class, 'index'])
         ->name('complexes.index');
@@ -838,11 +788,11 @@ Route::get('/reservations/{reservation}/print',
    Route::get('/my-activities', function () {
         return view('activities.my');
     })->name('my.activities');
-    // Étape 1 - Choisir type
+    // Ã‰tape 1 - Choisir type
     Route::get('/reservations/select-type', [ReservationController::class, 'selectType'])
         ->name('reservation.select_type');
 
-    // Étape 2 - Liste des complexes selon type
+    // Ã‰tape 2 - Liste des complexes selon type
     Route::get('/reservations/list/{type}', [ReservationController::class, 'listByType'])
         ->name('reservation.list_by_type');
 
@@ -853,11 +803,11 @@ Route::post('/activities/select', function () {
 
 
 
-    // Étape 3 - Formulaire
+    // Ã‰tape 3 - Formulaire
     Route::get('/reservations/form/{id}', [ReservationController::class, 'form'])
         ->name('reservation.form');
 
-    // Étape 4 - Enregistrer
+    // Ã‰tape 4 - Enregistrer
     Route::post('/reservations/store', [ReservationController::class, 'store'])
         ->name('reservation.store');
 
@@ -879,3 +829,4 @@ Route::post('/activities/select', function () {
 
 
 });
+

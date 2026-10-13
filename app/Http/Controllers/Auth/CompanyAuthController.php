@@ -51,16 +51,25 @@ public function showRegister(Request $request)
      */
     public function register(Request $request)
     {
+        $request->merge([
+            'phone' => preg_replace('/[\s.\-()]/', '', (string) $request->phone),
+        ]);
+
         $request->validate([
             'name'         => 'required|string|max:255',
             'email'        => 'required|email|unique:users',
-            'password'     => 'required|min:6|confirmed',
+            'phone'        => ['required', 'string', 'regex:/^0[0-9]{8,9}$/'],
+            'password'     => ['required', 'confirmed', 'min:8', 'regex:/[a-z]/', 'regex:/[A-Z]/', 'regex:/[0-9]/', 'regex:/[^a-zA-Z0-9]/'],
             'complex_id'   => 'required|exists:complexes,id',
-            'attachments'  => 'required',
+            'attachments'  => 'nullable|array',
             'attachments.*'=> 'mimes:pdf,jpg,jpeg,png|max:4096'
         ], [
             'complex_id.required' => 'يرجى اختيار المجمع الرياضي التابع للمؤسسة.',
-            'attachments.required' => 'يرجى رفع ملف واحد على الأقل.',
+            'phone.required'      => 'رقم هاتف المسؤول مطلوب.',
+            'phone.regex'         => 'أدخل رقم هاتف جزائري صحيح (مثال: 0550123456).',
+            'password.min'        => 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',
+            'password.regex'      => 'كلمة المرور يجب أن تحتوي على حرف كبير وحرف صغير ورقم ورمز خاص.',
+            'password.confirmed'  => 'كلمتا المرور غير متطابقتين.',
         ]);
 if (trim(strtolower($request->captcha_word)) !== strtolower(session('captcha_word'))) {
     return back()->withErrors([
@@ -75,6 +84,7 @@ if (trim(strtolower($request->captcha_word)) !== strtolower(session('captcha_wor
             $user = User::create([
                 'name'        => $request->name,
                 'email'       => $request->email,
+                'phone'       => $request->phone,
                 'password'    => Hash::make($request->password),
                 'type'        => 'company',
                 'complex_id'  => $request->complex_id,
@@ -93,15 +103,14 @@ if (trim(strtolower($request->captcha_word)) !== strtolower(session('captcha_wor
                 mkdir($storagePath, 0777, true);
             }
 
-            // 3️⃣ رفع الملفات
-            foreach ($request->file('attachments') as $file) {
+            // 3️⃣ رفع الملفات (اختياري)
+            foreach ((array) $request->file('attachments') as $file) {
+                if (!$file) {
+                    continue;
+                }
                 $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
                 $file->move($storagePath, $fileName);
                 $savedFiles[] = $storageUrl . '/' . $fileName;
-            }
-
-            if (empty($savedFiles)) {
-                throw new \Exception("File upload failed");
             }
 
             // 4️⃣ إنشاء سجل في جدول clubs للكيان company
@@ -110,7 +119,7 @@ if (trim(strtolower($request->captcha_word)) !== strtolower(session('captcha_wor
                 'nom'             => $request->name,
                 'entity_type'     => 'company',
                 'complex_id'      => $request->complex_id,
-                'attachments'     => json_encode($savedFiles, JSON_UNESCAPED_UNICODE),
+                'attachments'     => $savedFiles ? json_encode($savedFiles, JSON_UNESCAPED_UNICODE) : null,
             ]);
 
             DB::commit();

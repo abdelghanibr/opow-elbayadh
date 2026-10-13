@@ -52,33 +52,29 @@
 
 <input type="hidden" name="complex_id" value="{{ $complexId }}">
 
-                <!-- Commercial number -->
+                <!-- Phone: responsable de l'inscription -->
                 <div class="col-md-6">
-                    <label class="form-label">رقم السجل التجاري</label>
-                    <input type="text" name="commercial_number" id="company_commercial" value="{{ old('commercial_number') }}"
-                        class="form-control @error('commercial_number') is-invalid @enderror" required>
+                    <label class="form-label">رقم هاتف المسؤول عن التسجيل</label>
+                    <input type="tel" name="phone" id="company_phone" value="{{ old('phone') }}"
+                        class="form-control @error('phone') is-invalid @enderror"
+                        placeholder="0550 12 34 56" inputmode="tel" autocomplete="tel" required>
 
-                    @error('commercial_number')
+                    @error('phone')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                     @enderror
                 </div>
 
-                <!-- Documents -->
-                <div class="col-md-6">
-                    <label class="form-label">وثائق الشركة 📎</label>
-                    <input type="file" name="attachments[]" id="company_attachments" multiple
-                        class="form-control @error('attachments') is-invalid @enderror">
-
-                    @error('attachments')
-                        <div class="text-danger small mt-1">{{ $message }}</div>
-                    @enderror
-                </div>
+                {{-- تم إخفاء رقم السجل التجاري ووثائق الشركة (غير إلزامية) --}}
 
                 <!-- Password -->
                 <div class="col-md-6">
                     <label class="form-label">كلمة المرور</label>
                     <input type="password" name="password" id="company_password"
                         class="form-control @error('password') is-invalid @enderror" required>
+
+                    <small class="text-muted d-block mt-1" style="line-height:1.7;">
+                        8 أحرف على الأقل، وتتضمن: حرفاً كبيراً (A-Z)، حرفاً صغيراً (a-z)، رقماً (0-9)، ورمزاً خاصاً (@ # $ ...).
+                    </small>
 
                     @error('password')
                         <div class="text-danger small mt-1">{{ $message }}</div>
@@ -254,76 +250,119 @@
 @push('js')
 <script>
 var checkEmailUrl = "{{ route('auth.check-email') }}";
+var emailExists = false;
+var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function setFieldError(input, msg) {
+    if (!input) return true;
+    var err = input.parentNode.querySelector('.js-field-error');
+    if (msg) {
+        if (!err) {
+            err = document.createElement('div');
+            err.className = 'text-danger small mt-1 js-field-error';
+            input.parentNode.appendChild(err);
+        }
+        err.textContent = msg;
+        input.classList.add('is-invalid');
+        return false;
+    }
+    if (err) err.remove();
+    input.classList.remove('is-invalid');
+    return true;
+}
+
+var validators = {
+    company_name: function() {
+        var v = document.getElementById('company_name').value.trim();
+        if (!v) return 'اسم الشركة مطلوب.';
+        if (v.length < 3) return 'اسم الشركة قصير جداً (3 أحرف على الأقل).';
+        return null;
+    },
+    company_email: function() {
+        var v = document.getElementById('company_email').value.trim();
+        if (!v) return 'البريد الإلكتروني مطلوب.';
+        if (!emailRe.test(v)) return 'أدخل بريد إلكتروني صحيح.';
+        if (emailExists) return 'هذا البريد الإلكتروني مسجل بالفعل.';
+        return null;
+    },
+    company_phone: function() {
+        var raw = document.getElementById('company_phone').value.trim();
+        if (!raw) return 'رقم هاتف المسؤول مطلوب.';
+        var v = raw.replace(/[\s.\-()]/g, '');
+        if (!/^0[0-9]{8,9}$/.test(v)) return 'أدخل رقم هاتف جزائري صحيح (مثال: 0550 12 34 56).';
+        return null;
+    },
+    company_password: function() {
+        var v = document.getElementById('company_password').value;
+        if (!v) return 'كلمة المرور مطلوبة.';
+        if (v.length < 8) return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.';
+        if (!/[a-z]/.test(v) || !/[A-Z]/.test(v) || !/[0-9]/.test(v) || !/[^a-zA-Z0-9]/.test(v))
+            return 'كلمة المرور يجب أن تحتوي على حرف كبير وحرف صغير ورقم ورمز خاص.';
+        return null;
+    },
+    company_password_confirmation: function() {
+        var p = document.getElementById('company_password').value;
+        var v = document.getElementById('company_password_confirmation').value;
+        if (!v) return 'يرجى تأكيد كلمة المرور.';
+        if (p !== v) return 'كلمتا المرور غير متطابقتين.';
+        return null;
+    },
+    company_captcha: function() {
+        var v = document.getElementById('company_captcha').value.trim();
+        return v ? null : 'يرجى إدخال كلمة التحقق.';
+    },
+    company_privacy: function() {
+        return document.getElementById('company_privacy').checked ? null : 'يجب الموافقة على سياسة حماية البيانات.';
+    }
+};
+
+function validateField(id) {
+    var input = document.getElementById(id);
+    if (!input || !validators[id]) return true;
+    return setFieldError(input, validators[id]());
+}
+
+Object.keys(validators).forEach(function(id) {
+    var input = document.getElementById(id);
+    if (!input) return;
+
+    input.addEventListener('blur', function() { validateField(id); });
+    input.addEventListener('change', function() { validateField(id); });
+    input.addEventListener('input', function() { validateField(id); });
+});
+
+// كلمة المرور: إعادة التحقق من التأكيد مباشرة
+document.getElementById('company_password').addEventListener('input', function() {
+    var confirmInput = document.getElementById('company_password_confirmation');
+    if (confirmInput.value || confirmInput.classList.contains('is-invalid')) {
+        validateField('company_password_confirmation');
+    }
+});
+
+// البريد: فحص البريد المكرر عبر AJAX
 document.getElementById('company_email').addEventListener('blur', function() {
     var email = this.value.trim();
-    if (!email) return;
+    if (!email || !emailRe.test(email)) return;
     fetch(checkEmailUrl + '?email=' + encodeURIComponent(email))
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            var el = document.getElementById('company_email');
-            var existing = el.parentNode.querySelector('.email-exists-error');
-            if (existing) existing.remove();
-            if (data.exists) {
-                var div = document.createElement('div');
-                div.className = 'form-error email-exists-error';
-                div.textContent = 'هذا البريد الإلكتروني مسجل بالفعل.';
-                el.parentNode.appendChild(div);
-                el.classList.add('is-invalid');
-            }
-        });
+            emailExists = !!data.exists;
+            validateField('company_email');
+        })
+        .catch(function() {});
 });
 
 document.getElementById('companyRegisterForm').addEventListener('submit', function(e) {
     var valid = true;
-    var errors = [];
 
-    var name = document.getElementById('company_name').value.trim();
-    if (!name || name.length < 3) {
-        errors.push('اسم الشركة مطلوب (3 أحرف على الأقل).');
-        valid = false;
-    }
-
-    var email = document.getElementById('company_email').value.trim();
-    var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRe.test(email)) {
-        errors.push('أدخل بريد إلكتروني صحيح.');
-        valid = false;
-    }
-
-    var commercial = document.getElementById('company_commercial').value.trim();
-    if (!commercial) {
-        errors.push('رقم السجل التجاري مطلوب.');
-        valid = false;
-    }
-
-    var password = document.getElementById('company_password').value;
-    if (!password || password.length < 8) {
-        errors.push('كلمة المرور يجب أن تكون 8 أحرف على الأقل.');
-        valid = false;
-    }
-
-    var confirm = document.getElementById('company_password_confirmation').value;
-    if (password !== confirm) {
-        errors.push('كلمتا المرور غير متطابقتين.');
-        valid = false;
-    }
-
-    var captcha = document.getElementById('company_captcha').value.trim();
-    if (!captcha) {
-        errors.push('التحقق من الروبوت مطلوب.');
-        valid = false;
-    }
-
-    var privacy = document.getElementById('company_privacy').checked;
-    if (!privacy) {
-        errors.push('يجب الموافقة على سياسة حماية البيانات.');
-        valid = false;
-    }
+    Object.keys(validators).forEach(function(id) {
+        if (!validateField(id)) valid = false;
+    });
 
     if (!valid) {
         e.preventDefault();
-        alert(errors.join('\n'));
+        var firstErr = document.querySelector('.js-field-error');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 });
 </script>

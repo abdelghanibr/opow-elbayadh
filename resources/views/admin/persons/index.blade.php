@@ -10,6 +10,14 @@
         <button id="printSelected" class="btn btn-primary">
             🖨 طباعة المختارين
         </button>
+
+        <!-- 🖨️ طباعة بطاقات اللاعبين (كل الأنواع: فرد / نادٍ / مؤسسة) -->
+        <button id="printCards" class="btn btn-success">
+            🪪 طباعة البطاقات المختارين
+        </button>
+        <a href="{{ route('admin.cards') }}" class="btn btn-outline-success" target="_blank">
+            🪪 اختيار البطاقات
+        </a>
     </div>
 
     <!-- 🔍 فلاتر أعلى الجدول (فقط حالة الملف + حالة التأمين) -->
@@ -118,9 +126,11 @@
                     <th>الفئة العمرية</th>
                      <th>الإيمايل</th>
                     <th>المنشأة</th>
-                    <th>حالة الدفع</th>
-                    <th>حالة التأمين</th>
-                                   <th>الفريق</th>
+                     <th>النوع</th>
+                     <th>حالة الدفع</th>
+                     <th>حالة التأمين</th>
+                                    <th>الفريق</th>
+                    <th>🪪 بطاقة</th>
                     <th>حذف</th>
                 </tr>
                 </thead>
@@ -173,6 +183,21 @@
                         <!-- Complex name -->
                         <td>{{ $p->user->complex->nom ?? '—' }}</td>
 
+                        <!-- Type (person / club / company) -->
+                        <td>
+                            @php
+                                $type = $p->user->type ?? 'person';
+                                $typeLabels = [
+                                    'person'    => ['🏃 فرد', 'primary'],
+                                    'club'      => ['🏊 نادٍ', 'info'],
+                                    'company'   => ['🏢 مؤسسة', 'secondary'],
+                                    'entreprise'=> ['🏢 مؤسسة', 'secondary'],
+                                ];
+                                [$typeLabel, $typeBadge] = $typeLabels[$type] ?? [$type, 'dark'];
+                            @endphp
+                            <span class="badge bg-{{ $typeBadge }}">{{ $typeLabel }}</span>
+                        </td>
+
                         <!-- Dossier Status (badge) -->
                         <td>
 @php
@@ -199,15 +224,26 @@
                             @endif
                         </td>
     <td>{{ $p->user->name ?? '—' }}</td>
-                        <!-- Delete Action -->
-                        <td>
-                            <form action="{{ route('persons.destroy', $p->id) }}" method="POST"
-                                  onsubmit="return confirm('هل تريد حذف هذا الشخص؟')">
-                                @csrf
-                                @method('DELETE')
-                                <button class="btn btn-sm btn-danger">🗑</button>
-                            </form>
-                        </td>
+    <!-- 🪪 Print card -->
+    <td>
+        <a href="{{ route('admin.card', $p->id) }}" target="_blank"
+           class="btn btn-sm btn-success" title="طباعة البطاقة">
+            🪪
+        </a>
+    </td>
+    <!-- Delete Action -->
+    <td>
+        @if(($p->user->type ?? 'person') === 'person')
+            <form action="{{ route('persons.destroy', $p->id) }}" method="POST"
+                    onsubmit="return confirm('هل تريد حذف هذا الشخص؟')">
+                @csrf
+                @method('DELETE')
+                <button class="btn btn-sm btn-danger">🗑</button>
+            </form>
+        @else
+            <span class="text-muted small">—</span>
+        @endif
+    </td>
 
                     </tr>
                 @endforeach
@@ -298,6 +334,26 @@ $(document).ready(function () {
                 },
                 body: JSON.stringify({ ids: selected })
             });
+        });
+
+        // 🪪 زر طباعة البطاقات
+        $('#printCards').on('click', function () {
+
+            let selected = [];
+            $('.row-check:checked').each(function () {
+                selected.push($(this).val());
+            });
+
+            let url = "{{ route('admin.cards.print') }}";
+
+            if (selected.length > 0) {
+                url += "?ids=" + selected.join(',');
+            } else {
+                alert("الرجاء اختيار شخص واحد على الأقل");
+                return;
+            }
+
+            window.open(url, "_blank");
         });
 
 

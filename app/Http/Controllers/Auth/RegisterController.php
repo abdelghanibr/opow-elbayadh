@@ -35,6 +35,8 @@ class RegisterController extends Controller
 
         switch ($user->type) {
             case 'admin':
+            case 'financier':
+            case 'verify_qr':
                 return view('admin.profile.edit', compact('user','complexes'));
 
             case 'club':
@@ -62,7 +64,7 @@ class RegisterController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
            
-            'complex_id' => 'required|exists:complexes,id', // 🔥 تم إضافته
+            'complex_id' => 'nullable|exists:complexes,id',
             'password' => 'nullable|confirmed|min:8',
         ]);
 
@@ -70,7 +72,9 @@ class RegisterController extends Controller
         $user->name = $request->name;
         $user->email = $request->email;
         $user->phone = $request->phone;
-        $user->complex_id = $request->complex_id; // ✔️
+        if ($request->filled('complex_id')) {
+            $user->complex_id = $request->complex_id; // ✔️
+        }
 
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
@@ -92,6 +96,12 @@ class RegisterController extends Controller
             case 'entreprise':
                 return redirect()->route('entreprise.profile.edit')
                     ->with('success', '✔ تم تحديث حساب الشركة!');
+
+            case 'admin':
+            case 'financier':
+            case 'verify_qr':
+                return redirect()->route('admin.profile.edit')
+                    ->with('success', 'تم تحديث البيانات بنجاح');
 
             default:
                 abort(403, 'غير مصرح لك بتنفيذ هذا الإجراء');

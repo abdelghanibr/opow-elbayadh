@@ -37,6 +37,21 @@
                     @enderror
                 </div>
 
+                <!-- Company Type -->
+                <div class="col-md-6">
+                    <label class="form-label">نوع المؤسسة</label>
+                    <select name="company_type" id="company_type"
+                        class="form-select @error('company_type') is-invalid @enderror" required>
+                        <option value="">-- اختر النوع --</option>
+                        <option value="public" {{ old('company_type') == 'public' ? 'selected' : '' }}>مؤسسة عمومية</option>
+                        <option value="privee" {{ old('company_type') == 'privee' ? 'selected' : '' }}>مؤسسة خاصة</option>
+                    </select>
+
+                    @error('company_type')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
+
                 <!-- Email -->
                 <div class="col-md-6">
                     <label class="form-label">البريد الإلكتروني</label>
@@ -87,42 +102,20 @@
                     <input type="password" name="password_confirmation" id="company_password_confirmation" class="form-control" required>
                 </div>
 
-                <!-- Not robot -->
-             <div class="mt-3">
+                <!-- Not robot (reCAPTCHA) -->
+@if (!app()->environment('local'))
+<div class="mt-3">
     <label class="fw-bold d-block mb-1">🔐 التحقق أنني لست روبوت :</label>
 
-    <p class="text-muted mb-2">
-        يرجى كتابة الكلمة التالية كما هي تماماً:
-    </p>
-
-    <!-- الكلمة داخل إطار جميل -->
-    <div style="
-        border: 2px dashed #007bff;
-        padding: 10px 15px;
-        border-radius: 8px;
-        font-size: 1.3rem;
-        font-weight: bold;
-        text-align: center;
-        background: #f8f9fa;
-        color: #007bff;
-        letter-spacing: 2px;
-        margin-bottom: 15px;
-        
-    ">
-        {{ $correctWord }}
+    <div class="captcha-wrapper">
+        <div class="g-recaptcha" data-sitekey="{{ env('RECAPTCHA_SITE_KEY') }}"></div>
     </div>
 
-    <input type="text" 
-           name="captcha_word" 
-           id="company_captcha"
-           class="form-control text-center"
-           placeholder="اكتب الكلمة هنا" 
-           required>
-
-    @error('captcha_word')
+    @error('g-recaptcha-response')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
 </div>
+@endif
 
                 <!-- Privacy Zone -->
                 <div class="privacy-zone-enterprise mt-4">
@@ -245,9 +238,18 @@
     color:white;
 }
 
+.captcha-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 6px;
+}
+
 </style>
 
 @push('js')
+@if (!app()->environment('local'))
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+@endif
 <script>
 var checkEmailUrl = "{{ route('auth.check-email') }}";
 var emailExists = false;
@@ -292,6 +294,10 @@ var validators = {
         if (!/^0[0-9]{8,9}$/.test(v)) return 'أدخل رقم هاتف جزائري صحيح (مثال: 0550 12 34 56).';
         return null;
     },
+    company_type: function() {
+        var v = document.getElementById('company_type').value;
+        return v ? null : 'يرجى اختيار نوع المؤسسة.';
+    },
     company_password: function() {
         var v = document.getElementById('company_password').value;
         if (!v) return 'كلمة المرور مطلوبة.';
@@ -306,10 +312,6 @@ var validators = {
         if (!v) return 'يرجى تأكيد كلمة المرور.';
         if (p !== v) return 'كلمتا المرور غير متطابقتين.';
         return null;
-    },
-    company_captcha: function() {
-        var v = document.getElementById('company_captcha').value.trim();
-        return v ? null : 'يرجى إدخال كلمة التحقق.';
     },
     company_privacy: function() {
         return document.getElementById('company_privacy').checked ? null : 'يجب الموافقة على سياسة حماية البيانات.';

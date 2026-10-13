@@ -314,12 +314,66 @@ class TicketPaymentController extends Controller
 
         $isValid = !in_array(false, $checks);
 
+        if ($isValid) {
+            $scannedAt = now();
+
+            // تحديث ذرّي: لن ينجح إلا مرة واحدة فقط (race condition)
+            $locked = Ticket::where('id', $ticket->id)
+                ->whereNull('scanned_at')
+                ->update([
+                    'scanned_at' => $scannedAt,
+                    'scanned_by' => Auth::id(),
+                ]);
+
+            if ($locked === 0) {
+                $ticket->refresh();
+                $ticket->load('scanner');
+
+                return view('payments.verify-qr', [
+                    'result'  => 'already_scanned',
+                    'message' => 'التذكرة ممسوحة مسبقًا — تم رفض المسح المزدوج',
+                    'qrData'  => $data,
+                    'ticket'  => $ticket,
+                    'checks'  => $checks,
+                ]);
+            }
+
+            $ticket->scanned_at = $scannedAt;
+            $ticket->scanned_by = Auth::id();
+            $ticket->setRelation('scanner', Auth::user());
+        }
+
         return view('payments.verify-qr', [
             'result'   => $isValid ? 'valid' : 'tampered',
             'message'  => $isValid ? 'تذكرة صالحة — تم التحقق بنجاح' : 'التذكرة غير متطابقة — بيانات مشبوهة',
             'qrData'   => $data,
             'ticket'   => $ticket,
             'checks'   => $checks,
+        ]);
+    }
+
+    public function resetScan(Request $request)
+    {
+        if (Auth::user()?->type !== 'admin') {
+            abort(403, 'غير مصرح لك');
+        }
+
+        $request->validate([
+            'ticket_id' => 'required|integer|exists:tickets,id',
+        ]);
+
+        $ticket = Ticket::findOrFail($request->input('ticket_id'));
+
+        $ticket->update([
+            'scanned_at' => null,
+            'scanned_by' => null,
+        ]);
+
+        return view('payments.verify-qr', [
+            'result' => 'reset',
+            'message' => 'تم إلغاء وسم التذكرة #'.$ticket->id.' — يمكن مسحها مجددًا',
+            'qrData' => null,
+            'ticket' => $ticket->load(['match.homeTeam', 'match.awayTeam', 'seatType']),
         ]);
     }
 

@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 use App\Models\Dossier;
+use App\Services\SimpleXlsx;
 
 class PersonController extends Controller
 {
@@ -142,6 +143,8 @@ public function updateAssurance(Request $request)
         'gender'     => 'required|in:ذكر,أنثى',
         'education'  => 'required|string|max:50',
         'study_level' => 'nullable|string|max:100|in:فئة المدارس او البراعم,فئة اقل من 13 سنة (U13),فئة اقل من 16 سنة (U16),فئة اقل من 20 سنة (U20),فئة الاكابر',
+        'blood_type'  => 'nullable|string|max:5|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
+        'address'     => 'nullable|string|max:255',
         'photo'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         'registration_form_pdf' => 'nullable|file|mimes:pdf|max:3072',
     ];
@@ -210,6 +213,8 @@ public function updateAssurance(Request $request)
     $person->gender     = $validated['gender'];
     $person->education  = $validated['education'];
     $person->study_level = $validated['study_level'] ?? null;
+    $person->blood_type = $validated['blood_type'] ?? null;
+    $person->address    = $validated['address'] ?? null;
     $person->photo      = $photoPath;
     $person->birth_certificate = $birthCertificatePath;
     $person->license_number = $validated['license_number'] ?? null;
@@ -287,6 +292,8 @@ public function updateAssurance(Request $request)
         'gender'     => 'required|in:ذكر,أنثى',
         'education'   => 'required|string|max:50',
         'study_level' => 'nullable|string|max:100|in:فئة المدارس او البراعم,فئة اقل من 13 سنة (U13),فئة اقل من 16 سنة (U16),فئة اقل من 20 سنة (U20),فئة الاكابر',
+        'blood_type'  => 'nullable|string|max:5|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
+        'address'     => 'nullable|string|max:255',
         'photo'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         'registration_form_pdf' => 'nullable|file|mimes:pdf|max:3072',
     ];
@@ -317,6 +324,12 @@ public function updateAssurance(Request $request)
         'study_level'    => $validated['study_level'] ?? null,
         'license_number' => $validated['license_number'] ?? null,
     ]);
+
+    /* فقط إذا أرسل النموذج الحقلين (حماية من المسح عند نماذج لا تحتويهما) */
+    $cardFields = array_intersect_key($validated, ['blood_type' => 1, 'address' => 1]);
+    if ($cardFields) {
+        $person->update($cardFields);
+    }
 
     if ($request->hasFile('photo')) {
 
@@ -458,4 +471,320 @@ public function destroy($id)
 
     return back()->with('success', '✅ تم حذف الشخص وجميع ملفاته بنجاح.');
 }
+
+    /* =====================================================
+       📥 IMPORT EN MASSE (modèle Excel)
+    ===================================================== */
+    public function checkDuplicate(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!in_array($user->type, ['company', 'club'], true)) {
+            abort(403, 'نوع المستخدم غير مدعوم');
+        }
+
+        $firstname = trim((string) $request->query('firstname'));
+        $lastname  = trim((string) $request->query('lastname'));
+        $birthDate = $this->parseDate($request->query('birth_date'));
+        $excludeId = (int) $request->query('exclude_id');
+
+        if ($firstname === '' || $lastname === '' || !$birthDate) {
+            return response()->json(['exists' => false]);
+        }
+
+        $query = Person::where('user_id', $user->id)
+            ->where('firstname', $firstname)
+            ->where('lastname', $lastname)
+            ->whereDate('birth_date', $birthDate);
+
+        if ($excludeId > 0) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        return response()->json(['exists' => $query->exists()]);
+    }
+
+    public function downloadImportTemplate()
+    {
+        $user = Auth::user();
+
+        if (!in_array($user->type, ['company', 'club'], true)) {
+            abort(403, 'نوع المستخدم غير مدعوم');
+        }
+
+        $headers = [
+            'الاسم', 'اللقب', 'تاريخ الميلاد', 'الجنس', 'التصنيف',
+        ];
+
+        // Repli CSV si l'extension zip n'est pas disponible (xlsx impossible)
+        if (!class_exists(\ZipArchive::class)) {
+            $csv = "\xEF\xBB\xBF" . implode(';', $headers) . "\r\n";
+
+            return response()->streamDownload(function () use ($csv) {
+                echo $csv;
+            }, 'modele_import_personnes.csv', [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+            ]);
+        }
+
+        try {
+            $content = SimpleXlsx::build($headers, [], 'الأشخاص');
+        } catch (\Throwable $e) {
+            abort(500, $e->getMessage());
+        }
+
+        return response()->streamDownload(function () use ($content) {
+            echo $content;
+        }, 'modele_import_personnes.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function import(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!in_array($user->type, ['company', 'club'], true)) {
+            abort(403, 'نوع المستخدم غير مدعوم');
+        }
+
+        $request->validate([
+            'file' => 'required|file|max:2048',
+        ]);
+
+        $file = $request->file('file');
+        $ext  = strtolower($file->getClientOriginalExtension());
+
+        if (!in_array($ext, ['xlsx', 'csv', 'txt'], true)) {
+            return back()->withErrors(['file' => 'الصيغة غير مدعومة. يرجى رفع ملف Excel (xlsx) أو CSV.']);
+        }
+
+        /* ===== ربط المؤسسة/النادي ===== */
+        if ($user->type === 'club') {
+            $club = $user->club;
+        } else {
+            $club = Club::where('user_id', $user->id)->first();
+        }
+
+        if (!$club) {
+            return back()->withErrors(['file' => 'لا توجد مؤسسة/نادي مرتبط بهذا الحساب.']);
+        }
+
+        /* ===== قراءة الملف ===== */
+        try {
+            $rows = in_array($ext, ['csv', 'txt'], true)
+                ? $this->readCsvRows($file->getRealPath())
+                : SimpleXlsx::read($file->getRealPath());
+        } catch (\Throwable $e) {
+            return back()->withErrors(['file' => 'تعذر قراءة الملف: ' . $e->getMessage()]);
+        }
+
+        if (empty($rows)) {
+            return back()->withErrors(['file' => 'الملف فارغ.']);
+        }
+
+        array_shift($rows); // صف العناوين
+
+        $genders    = ['ذكر', 'أنثى'];
+        $educations = ['لاعب', 'مدرب', 'مسير', 'آخر'];
+
+        $imported = 0;
+        $errors   = [];
+        $seen     = [];
+        $valid    = [];
+
+        // تحميل مسبق للأشخاص الموجودين (لكشف التكرار بدون استعلام لكل سطر)
+        $existing = Person::where('user_id', $user->id)
+            ->get(['firstname', 'lastname', 'birth_date'])
+            ->mapWithKeys(function ($p) {
+                $key = mb_strtolower(trim((string) $p->firstname)) . '|'
+                    . mb_strtolower(trim((string) $p->lastname)) . '|'
+                    . ($p->birth_date ? Carbon::parse($p->birth_date)->format('Y-m-d') : '');
+                return [$key => true];
+            })
+            ->all();
+
+        /* ===== المرحلة 1: التحقق من كامل الملف (بدون أي إدخال) ===== */
+        foreach ($rows as $i => $row) {
+            $line = $i + 2;
+
+            $row = array_map(fn ($v) => is_string($v) ? trim($v) : $v, (array) $row);
+
+            $nonEmpty = array_filter($row, fn ($v) => trim((string) $v) !== '');
+            if (empty($nonEmpty)) {
+                continue;
+            }
+
+            $firstname = trim((string) ($row[0] ?? ''));
+            $lastname  = trim((string) ($row[1] ?? ''));
+            $birthRaw  = $row[2] ?? '';
+            $gender    = trim((string) ($row[3] ?? ''));
+            $education = trim((string) ($row[4] ?? ''));
+
+            $rowErrors = [];
+
+            if ($firstname === '') {
+                $rowErrors[] = 'الاسم مطلوب';
+            } elseif (mb_strlen($firstname) > 100) {
+                $rowErrors[] = 'الاسم طويل جداً';
+            }
+
+            if ($lastname === '') {
+                $rowErrors[] = 'اللقب مطلوب';
+            } elseif (mb_strlen($lastname) > 100) {
+                $rowErrors[] = 'اللقب طويل جداً';
+            }
+
+            $birthDate = $this->parseDate($birthRaw);
+            if (!$birthDate) {
+                $rowErrors[] = 'تاريخ الميلاد غير صالح (استعمل YYYY-MM-DD)';
+            } elseif (Carbon::parse($birthDate)->gt(now()->subYears(3))) {
+                $rowErrors[] = 'يجب أن يكون العمر 3 سنوات على الأقل';
+            }
+
+            if (!in_array($gender, $genders, true)) {
+                $rowErrors[] = 'الجنس يجب أن يكون ذكر أو أنثى';
+            }
+
+            if ($education === '') {
+                $rowErrors[] = 'التصنيف مطلوب';
+            } elseif (!in_array($education, $educations, true)) {
+                $rowErrors[] = 'التصنيف غير صالح (لاعب/مدرب/مسير/آخر)';
+            }
+
+            if ($rowErrors) {
+                $errors[] = 'السطر ' . $line . ': ' . implode('، ', $rowErrors);
+                continue;
+            }
+
+            // كشف التكرار: نفس الاسم + اللقب + تاريخ الميلاد (داخل الملف أو في قاعدة البيانات)
+            $dupKey = mb_strtolower($firstname) . '|' . mb_strtolower($lastname) . '|' . $birthDate;
+
+            if (isset($seen[$dupKey])) {
+                $errors[] = 'السطر ' . $line . ': ' . $firstname . ' ' . $lastname . ' — مكرر داخل الملف';
+                continue;
+            }
+
+            if (isset($existing[$dupKey])) {
+                $errors[] = 'السطر ' . $line . ': ' . $firstname . ' ' . $lastname . ' — موجود مسبقاً في قاعدة البيانات';
+                continue;
+            }
+
+            $seen[$dupKey] = true;
+
+            $valid[] = [
+                'line'       => $line,
+                'firstname'  => $firstname,
+                'lastname'   => $lastname,
+                'birth_date' => $birthDate,
+                'gender'     => $gender,
+                'education'  => $education,
+            ];
+        }
+
+        /* ===== إذا وُجد أي خطأ أو تكرار: إيقاف الاستيراد وعرض التقرير فقط ===== */
+        if (!empty($errors)) {
+            session()->flash('import_blocked', true);
+            session()->flash('import_success_count', 0);
+            session()->flash('import_errors', $errors);
+
+            return redirect()->route(
+                $user->type === 'club' ? 'club.persons.index' : 'entreprise.persons.index'
+            );
+        }
+
+        /* ===== المرحلة 2: الاستيراد (الملف سليم) ===== */
+        foreach ($valid as $v) {
+            try {
+                $person             = new Person();
+                $person->user_id    = $user->id;
+                $person->firstname  = $v['firstname'];
+                $person->lastname   = $v['lastname'];
+                $person->birth_date = $v['birth_date'];
+                $person->gender     = $v['gender'];
+                $person->education  = $v['education'];
+                $person->club_id    = $club->id;
+                $person->save();
+
+                $imported++;
+            } catch (\Throwable $e) {
+                $errors[] = 'السطر ' . $v['line'] . ': خطأ أثناء الحفظ';
+            }
+        }
+
+        session()->flash('import_blocked', false);
+        session()->flash('import_success_count', $imported);
+        session()->flash('import_errors', $errors);
+
+        return redirect()->route(
+            $user->type === 'club' ? 'club.persons.index' : 'entreprise.persons.index'
+        );
+    }
+
+    private function readCsvRows(string $path): array
+    {
+        $rows = [];
+
+        if (($handle = fopen($path, 'r')) === false) {
+            return $rows;
+        }
+
+        $firstLine = fgets($handle);
+        rewind($handle);
+
+        $delim = ',';
+        if ($firstLine !== false) {
+            $counts = [
+                ','  => substr_count($firstLine, ','),
+                ';'  => substr_count($firstLine, ';'),
+                "\t" => substr_count($firstLine, "\t"),
+            ];
+            arsort($counts);
+            $delim = array_key_first($counts);
+        }
+
+        $bom = fread($handle, 3);
+        if ($bom !== "\xEF\xBB\xBF") {
+            rewind($handle);
+        }
+
+        while (($data = fgetcsv($handle, 0, $delim)) !== false) {
+            $rows[] = $data;
+        }
+
+        fclose($handle);
+
+        return $rows;
+    }
+
+    private function parseDate($value): ?string
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        // Excel serial date
+        if (is_numeric($value) && (float) $value > 1000 && (float) $value < 60000) {
+            $ts = ((float) $value - 25569) * 86400;
+
+            return gmdate('Y-m-d', (int) round($ts));
+        }
+
+        foreach (['Y-m-d', 'd/m/Y', 'd-m-Y', 'd.m.Y', 'Y/m/d'] as $format) {
+            try {
+                $date = Carbon::createFromFormat('!' . $format, $value);
+                if ($date && $date->format($format) === $value) {
+                    return $date->format('Y-m-d');
+                }
+            } catch (\Throwable $e) {
+                // try next format
+            }
+        }
+
+        $ts = strtotime($value);
+
+        return $ts !== false ? date('Y-m-d', $ts) : null;
+    }
 }

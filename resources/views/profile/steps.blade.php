@@ -146,6 +146,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var form = document.querySelector('.box-area form');
     if (!form) return;
 
+    // 🚫 Données anti-doublon des enfants déjà inscrits (même parent)
+    var EXISTING_CHILDREN = @json($existingChildren ?? []);
+    var CURRENT_PERSON_ID = {{ (int) ($person->id ?? 0) }};
+    var IS_CHILD = {{ $isChild ? 'true' : 'false' }};
+
     // Règles de validation par champ (libellé arabe + message)
     var RULES = {
         'firstname':       { msg: '⚠ الاسم مطلوب' },
@@ -153,7 +158,6 @@ document.addEventListener('DOMContentLoaded', function () {
         'birth_date':      { msg: '⚠ تاريخ الميلاد مطلوب' },
         'gender':          { msg: '⚠ يرجى اختيار الجنس' },
         'handicap':        { msg: '⚠ يرجى الإجابة على السؤال' },
-        'tuteur_fullname': { msg: '⚠ اسم الأب مطلوب' },
         'parent_firstname':{ msg: '⚠ اسم الولي مطلوب' },
         'parent_lastname': { msg: '⚠ لقب الولي مطلوب' },
         'parent_phone':    { msg: '⚠ رقم هاتف الولي مطلوب' },
@@ -223,10 +227,84 @@ document.addEventListener('DOMContentLoaded', function () {
         hint.textContent = message;
     }
 
+    // ==================== Vérifications supplémentaires ====================
+    // 🔞 Date de naissance : format valide + âge >= 3 ans (+ < 18 si enfant)
+    function validateBirthDate() {
+        var el = form.querySelector('input[name="birth_date"]');
+        if (!el) return true;
+
+        var val = (el.value || '').trim();
+        var group = groupOf(el);
+        var msg = null;
+
+        if (val) {
+            var m = val.split('-');
+            var d = new Date(m[0], m[1] - 1, m[2]);
+            var isValid = /^\d{4}-\d{2}-\d{2}$/.test(val) &&
+                d.getFullYear() == m[0] && d.getMonth() == m[1] - 1 && d.getDate() == m[2];
+
+            if (!isValid) {
+                msg = '⚠ تاريخ الميلاد غير صحيح';
+            } else {
+                var today = new Date();
+                var birth = new Date(m[0], m[1] - 1, m[2]);
+                var age = today.getFullYear() - birth.getFullYear();
+                var monthDiff = today.getMonth() - birth.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
+
+                if (age < 3) {
+                    msg = '⚠ السن يجب أن يكون 3 سنوات على الأقل';
+                }
+            }
+        }
+
+        clearField(el);
+        if (msg) {
+            if (group) {
+                group.classList.add('has-missing');
+                el.classList.add('is-invalid');
+                addHint(group, msg);
+            }
+            return false;
+        }
+        el.classList.add('is-valid');
+        return true;
+    }
+
+    // 👶 Anti-doublon : le même enfant ne peut pas être enregistré deux fois
+    function validateNoDuplicate() {
+        if (!IS_CHILD || !EXISTING_CHILDREN.length) return true;
+
+        var fn = ((form.querySelector('input[name="firstname"]') || {}).value || '').trim().toLowerCase();
+        var ln = ((form.querySelector('input[name="lastname"]') || {}).value || '').trim().toLowerCase();
+        var bd = ((form.querySelector('input[name="birth_date"]') || {}).value || '').trim();
+
+        if (!fn || !ln || !bd) return true;
+
+        var dup = EXISTING_CHILDREN.find(function (c) {
+            return c.id != CURRENT_PERSON_ID &&
+                (c.firstname || '').toLowerCase() === fn &&
+                (c.lastname || '').toLowerCase() === ln &&
+                (c.birth_date || '') === bd;
+        });
+
+        if (!dup) return true;
+
+        var group = groupOf(form.querySelector('input[name="firstname"]'));
+        if (group) {
+            group.classList.add('has-missing');
+            form.querySelector('input[name="firstname"]').classList.add('is-invalid');
+            addHint(group, '⚠ هذا الطفل مسجل بالفعل على حسابك. لا يمكن تسجيله مرتين.');
+        }
+        return false;
+    }
+
     // ✅ Validation en temps réel : dès qu'on quitte un champ (blur)
     form.addEventListener('blur', function (e) {
         var el = e.target;
         if (el.name && RULES[el.name]) validateField(el);
+        if (el.name === 'birth_date') validateBirthDate();
+        if (el.name === 'firstname' || el.name === 'lastname') validateNoDuplicate();
     }, true);
 
     // ✅ Efface l'erreur dès que l'utilisateur corrige
@@ -235,6 +313,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (el.name && RULES[el.name] && (el.value || '').trim() !== '') {
             clearField(el);
         }
+        if (el.name === 'firstname' || el.name === 'lastname') validateNoDuplicate();
     });
     form.addEventListener('change', function (e) {
         var el = e.target;
@@ -261,6 +340,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!firstMissing) firstMissing = el;
             }
         });
+
+        // 🔞 Date de naissance (âge >= 3, < 18 si enfant)
+        if (!validateBirthDate()) {
+            missing.push('⚠ تاريخ الميلاد غير صحيح');
+            if (!firstMissing) firstMissing = form.querySelector('input[name="birth_date"]');
+        }
+
+        // 🚫 Anti-doublon du même enfant
+        if (!validateNoDuplicate()) {
+            missing.push('⚠ هذا الطفل مسجل بالفعل');
+            if (!firstMissing) firstMissing = form.querySelector('input[name="firstname"]');
+        }
 
         if (missing.length > 0) {
             e.preventDefault();

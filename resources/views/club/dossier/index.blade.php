@@ -13,21 +13,11 @@
     @endif
 
     @php
-        // المرفقات
-        $files = json_decode($club->attachments, true) ?? [];
+        // المرفقات — مصفوفة مفهرسة باسم الوثيقة (Club::$attachments)
+        $files = $club->attachments;
 
         // 🔁 ترجمة أسماء الوثائق
-        $documentsLabels = [
-            'agreement'              => 'اعتماد النادي',
-            'statut'                 => 'القانون الأساسي',
-            'bureau_members'         => 'قائمة أعضاء المكتب المسير',
-            'coaches_certificates'   => 'شهادات المدربين',
-            'federation_affiliation' => 'شهادة الانخراط في الرابطة',
-            'insurance_certificate'  => 'شهادة التأمين الخاصة بالرياضيين والمسيرين',
-            'rules_book'             => 'دفتر الشروط',
-            'minutes_meeting'        => 'محضر الجمعية العامة',
-            'exploitation_request'  => 'طلب الاستغلال',
-        ];
+        $documentsLabels = App\Models\Club::DOSSIER_FILES;
     @endphp
 
     <table class="table table-bordered text-center align-middle">

@@ -113,7 +113,42 @@ $scheduleSeasonCounts = DB::table('reservations')
     }*/
 public function create()
 {
+    return $this->scheduleForm();
+}
+
+
+    /**
+     * 📋 تكرار فوج داخل نفس المركب
+     * تُنسخ كل البيانات ما عدا الاسم والمدرب، وتُترك الأوقات للتعديل
+     * (أو تُنسخ إن كان المركب يمنع التداخل).
+     */
+    public function duplicate($id)
+    {
+        $admin = Auth::user();
+        $source = Schedule::with('complexActivity')->findOrFail($id);
+
+        $sourceComplexId = $source->complexActivity->complex_id ?? null;
+
+        if (!is_null($admin->complex_id) && $admin->complex_id != 0
+            && (int) $sourceComplexId !== (int) $admin->complex_id) {
+            abort(403, '⛔ لا يمكنك نسخ فوج من منشأة أخرى');
+        }
+
+        return $this->scheduleForm($source);
+    }
+
+
+    /**
+     * 🧩 بيانات نموذج الإنشاء / التكرار
+     */
+    private function scheduleForm(?Schedule $source = null)
+{
     $admin = Auth::user();
+
+    // === فوج المصدر (وضع النسخ) ===
+    if ($source) {
+        $source->loadMissing('complexActivity.complex');
+    }
 
     // === فئات الأعمار ===
     $ageCategories = AgeCategory::all();
@@ -150,9 +185,132 @@ public function create()
         'complexes',
         'activities',
         'users',
-        'complexActivities'
+        'complexActivities',
+        'source'
     ));
 }
+
+
+    /**
+     * 🔎 البحث عن أوقات متداخلة مع أفواج نشطة أخرى داخل نفس المركب
+     *
+     * @return array<int, string> رسائل عربية قابلة للعرض
+     */
+    private function findSlotConflicts(int $complexId, $timeSlots, ?int $excludeScheduleId = null): array
+    {
+        $newSlots = is_array($timeSlots) ? $timeSlots : json_decode((string) $timeSlots, true);
+
+        if (!is_array($newSlots) || $newSlots === []) {
+            return [];
+        }
+
+        $newSlots = $this->normalizeSlots($newSlots);
+
+        if ($newSlots === []) {
+            return [];
+        }
+
+        $complexActivityIds = ComplexActivity::where('complex_id', $complexId)->pluck('id');
+
+        if ($complexActivityIds->isEmpty()) {
+            return [];
+        }
+
+        $existing = Schedule::whereIn('complex_activity_id', $complexActivityIds)
+            ->where('active', 1)
+            ->whereNotNull('time_slots')
+            ->when($excludeScheduleId, fn ($q) => $q->where('id', '!=', $excludeScheduleId))
+            ->get(['groupe', 'time_slots']);
+
+        $days = [
+            0 => 'الأحد', 1 => 'الإثنين', 2 => 'الثلاثاء', 3 => 'الأربعاء',
+            4 => 'الخميس', 5 => 'الجمعة', 6 => 'السبت',
+        ];
+
+        $conflicts = [];
+
+        foreach ($existing as $schedule) {
+            $otherSlots = $this->normalizeSlots(json_decode($schedule->time_slots, true));
+
+            foreach ($otherSlots as $other) {
+                foreach ($newSlots as $new) {
+                    if ($other['day_number'] !== $new['day_number']) {
+                        continue;
+                    }
+
+                    if ($this->slotsOverlap($other['start'], $other['end'], $new['start'], $new['end'])) {
+                        $conflicts[] = sprintf(
+                            'تعارض في التوقيت: %s من %s إلى %s محجوز مسبقاً بالفوج «%s»',
+                            $days[$new['day_number']] ?? '—',
+                            $new['start'],
+                            $new['end'],
+                            $schedule->groupe
+                        );
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique($conflicts));
+    }
+
+
+    /**
+     * 🧹 تطبيع أوقات الفترات: لا نقبل إلا HH:MM صحيحة
+     */
+    private function normalizeSlots($slots): array
+    {
+        if (!is_array($slots)) {
+            return [];
+        }
+
+        $clean = [];
+
+        foreach ($slots as $slot) {
+            if (!is_array($slot)) {
+                continue;
+            }
+
+            $day  = $slot['day_number'] ?? null;
+            $start = $slot['start'] ?? null;
+            $end   = $slot['end'] ?? null;
+
+            if (!is_numeric($day) || $day < 0 || $day > 6) {
+                continue;
+            }
+
+            if (! $this->isValidTime($start) || ! $this->isValidTime($end)) {
+                continue;
+            }
+
+            if ($start >= $end) {
+                continue;
+            }
+
+            $clean[] = [
+                'day_number' => (int) $day,
+                'start'      => substr($start, 0, 5),
+                'end'        => substr($end, 0, 5),
+            ];
+        }
+
+        return $clean;
+    }
+
+
+    private function isValidTime($time): bool
+    {
+        return is_string($time) && preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time) === 1;
+    }
+
+
+    /**
+     * ⏱ تداخل فترة [start1, end1) مع [start2, end2) — المقارنة نصية تنفع على HH:MM
+     */
+    private function slotsOverlap(string $start1, string $end1, string $start2, string $end2): bool
+    {
+        return $start1 < $end2 && $end1 > $start2;
+    }
 
 
     /**
@@ -196,6 +354,28 @@ public function store(Request $request)
             );
         }
     }
+
+    // 🚦 لا يمكن حفظ فوج بدون أي توقيت
+    if ($request->filled('time_slots')) {
+        $slots = json_decode($request->time_slots, true);
+
+        if (!is_array($slots) || $slots === []) {
+            $validator->errors()->add('time_slots', '❌ اختر توقيتاً واحداً على الأقل من التقويم');
+        }
+    }
+
+    // 🚦 التحقق من تداخل الأوقات — يُطبّق فقط إذا كان المركب يمنع التداخل
+    if ($request->filled('complex_id') && $request->filled('time_slots')) {
+
+        $complex = Complex::find($request->complex_id);
+
+        if ($complex && ! $complex->allowsTimeConflict()) {
+
+            foreach ($this->findSlotConflicts((int) $request->complex_id, $request->time_slots) as $conflict) {
+                $validator->errors()->add('time_slots', '⛔ ' . $conflict);
+            }
+        }
+    }
 });
 
 
@@ -230,7 +410,9 @@ public function store(Request $request)
         $schedule->price              = $request->price ;
 
         $schedule->user_id             = $request->user_id;
-        $schedule->time_slots          = $request->time_slots;
+        $schedule->time_slots          = json_encode(
+            $this->normalizeSlots(json_decode($request->time_slots, true))
+        );
         $schedule->type_season         = $request->type_season;
         $schedule->active              = $request->boolean('active');
         $schedule->date_debut          = $request->date_debut;
@@ -349,27 +531,41 @@ public function edit($id)
 public function occupiedSlots(Request $request)
 {
     $request->validate([
-        'complex_id'  => 'required|integer',
-        'activity_id' => 'required|integer',
+        'complex_id' => 'required|integer',
+        'activity_id' => 'nullable|integer',
     ]);
 
-    // 🔗 إيجاد complex_activity_id
-    $complexActivity = ComplexActivity::where('complex_id', $request->complex_id)
-        ->where('activity_id', $request->activity_id)
-        ->first();
+    $excludeSchedule = $request->integer('exclude_schedule', 0);
 
-    if (!$complexActivity) {
+    $complexId = $request->complex_id;
+
+    // 🔗 ComplexActivities du complexe (tous si pas d'activité précise)
+    $query = ComplexActivity::where('complex_id', $complexId);
+
+    if ($request->filled('activity_id')) {
+        $query->where('activity_id', $request->activity_id);
+    }
+
+    $complexActivities = $query->with('activity')->get();
+
+    if ($complexActivities->isEmpty()) {
         return response()->json([]);
     }
 
-    // 📦 جلب الجداول المرتبطة
-    $schedules = Schedule::where('complex_activity_id', $complexActivity->id)
+    // 📦 Tous les schedules ACTIFS liés à ces complex_activities
+    $schedules = Schedule::whereIn('complex_activity_id', $complexActivities->pluck('id'))
         ->whereNotNull('time_slots')
+        ->where('active', 1)
+        ->when($excludeSchedule, fn($q) => $q->where('id', '!=', $excludeSchedule))
+        ->with('complexActivity.activity')
         ->get();
 
     $events = [];
 
     foreach ($schedules as $schedule) {
+        $activity = $schedule->complexActivity->activity ?? null;
+        $color = $activity->color ?? '#dc3545';
+
         $slots = json_decode($schedule->time_slots, true);
 
         if (!is_array($slots)) continue;
@@ -377,26 +573,23 @@ public function occupiedSlots(Request $request)
         foreach ($slots as $slot) {
 
             // day_number: 0=الأحد ... 6=السبت
-         $events[] = [
-    'daysOfWeek' => [(int) $slot['day_number']],
-    'startTime'  => $slot['start'],
-    'endTime'    => $slot['end'],
-    'startRecur' => $schedule->date_debut
-        ? Carbon::parse($schedule->date_debut)->toDateString()
-        : Carbon::today()->toDateString(),
-    'endRecur' => $schedule->date_fin
-        ? Carbon::parse($schedule->date_fin)->addDay()->toDateString()
-        : Carbon::today()->addYears(5)->toDateString(),
+            // Récurrence hebdo pure (sans startRecur/endRecur) pour afficher
+            // tous les groupes actifs dans la semaine affichée.
+            $events[] = [
+                'daysOfWeek' => [(int) $slot['day_number']],
+                'startTime'  => $slot['start'],
+                'endTime'    => $slot['end'],
 
-    'display' => 'background',
-    'backgroundColor' => '#dc3545',
+                'display' => 'background',
+                'backgroundColor' => $color,
 
-    // 👈 اسم المجموعة هنا
-    'extendedProps' => [
-        'groupe' => $schedule->groupe,
-    ],
-];
-
+                // 👈 Nom du groupe + activité
+                'extendedProps' => [
+                    'groupe'   => $schedule->groupe,
+                    'activity' => $activity->title ?? '',
+                    'color'    => $color,
+                ],
+            ];
         }
     }
 
@@ -434,13 +627,41 @@ public function update(Request $request, $id)
 
                 if ($complex && $request->nbr > $complex->capacite_ma) {
 
-                    $validator->errors()->add(
-                        'nbr',
-                        'عدد الأماكن لا يمكن أن يتجاوز سعة المركب (' . $complex->capacite_ma . ').'
-                    );
+                $validator->errors()->add(
+                    'nbr',
+                    'عدد الأماكن لا يمكن أن يتجاوز سعة المركب (' . $complex->capacite_ma . ').'
+                );
+            }
+        }
+
+        // 🚦 لا يمكن حفظ فوج بدون أي توقيت
+        if ($request->filled('time_slots')) {
+            $slots = json_decode($request->time_slots, true);
+
+            if (!is_array($slots) || $slots === []) {
+                $validator->errors()->add('time_slots', '❌ اختر توقيتاً واحداً على الأقل من التقويم');
+            }
+        }
+
+        // 🚦 التحقق من تداخل الأوقات — يُطبّق فقط إذا كان المركب يمنع التداخل
+        if ($request->filled('complex_id') && $request->filled('time_slots')) {
+
+            $complex = Complex::find($request->complex_id);
+
+            if ($complex && ! $complex->allowsTimeConflict()) {
+
+                $conflicts = $this->findSlotConflicts(
+                    (int) $request->complex_id,
+                    $request->time_slots,
+                    (int) $id
+                );
+
+                foreach ($conflicts as $conflict) {
+                    $validator->errors()->add('time_slots', '⛔ ' . $conflict);
                 }
             }
-        });
+        }
+    });
 
         // 🟦 تنفيذ التحقق
         if ($validator->fails()) {
@@ -473,8 +694,10 @@ public function update(Request $request, $id)
         $schedule->sex                 = $validated['sex'];
         $schedule->nbr                 = $validated['nbr'];
         $schedule->price               = $validated['price'];
-        $schedule->user_id             = $validated['user_id'];
-        $schedule->time_slots          = $validated['time_slots'];
+        $schedule->user_id               = $validated['user_id'];
+        $schedule->time_slots            = json_encode(
+            $this->normalizeSlots(json_decode($validated['time_slots'], true))
+        );
         $schedule->type_season         = $validated['type_season'];
         $schedule->active              = $request->boolean('active');
         $schedule->date_debut          = $validated['date_debut'];

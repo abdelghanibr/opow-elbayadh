@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Club;
+use App\Models\Activity;
 
 class ClubDossierController extends Controller
 {
@@ -20,7 +21,8 @@ class ClubDossierController extends Controller
     public function edit()
     {
         $club = Club::where('user_id', Auth::id())->firstOrFail();
-        return view('club.dossier.edit', compact('club'));
+        $activities = Activity::orderBy('title')->get();
+        return view('club.dossier.edit', compact('club', 'activities'));
     }
 
     // حفظ التعديلات
@@ -28,31 +30,36 @@ class ClubDossierController extends Controller
     {
         $club = Club::where('user_id', Auth::id())->firstOrFail();
 
-        $attachments = json_decode($club->attachments, true) ?? [];
+        $files = array_keys(Club::DOSSIER_FILES);
 
-        // رفع الملفات
-        $files = [
-            'agrement',
-            'statut',
-            'bureau_members',
-            'coaches_certificates',
-            'federation_affiliation',
-            'insurance_certificate',
-            'rules_book',
-            'minutes_meeting',
-            'exploitation_request'
-        ];
-if (app()->environment('local')) {
-    $storagePath = storage_path('app/public');
-    $storageUrl  = '/storage';
-} else {
-    $storagePath = rtrim(env('PUBLIC_STORAGE_PATH'), '/');
-    $storageUrl  = rtrim(env('PUBLIC_STORAGE_URL'), '/');
-}
+        // التحقق من الملفات (5 ميغابايت كحد أقصى)
+        $validationRules = [];
+        foreach ($files as $file) {
+            $validationRules[$file] =
+                'nullable|file|mimes:' . Club::DOSSIER_MIMES . '|max:' . Club::DOSSIER_MAX_KB;
+        }
 
-// المرفقات القديمة
-$oldAttachments = json_decode($club->attachments ?? '{}', true);
-$attachments = $oldAttachments ?? [];
+        $request->validate($validationRules, [
+            '*.file'     => '❌ الملف المرفق غير صالح. يُرجى إعادة اختيار الملف.',
+            '*.max'      => '❌ حجم الملف كبير جدًا. الحد الأقصى المسموح به هو 2 ميغابايت.',
+            '*.uploaded' => '❌ تعذّر رفع الملف على الخادم. الحجم يتجاوز الحد المسموح به (2 ميغابايت). يُرجى ضغط الملف ثم إعادة المحاولة.',
+            '*.mimes'    => '❌ صيغة الملف غير مدعومة. الأشكال المسموحة: PDF, JPG, JPEG, PNG.',
+        ]);
+
+        $activityId = $request->validate([
+            'activity_id' => 'nullable|integer|exists:activities,id',
+        ])['activity_id'] ?? null;
+
+        if (app()->environment('local')) {
+            $storagePath = storage_path('app/public');
+            $storageUrl  = '/storage';
+        } else {
+            $storagePath = rtrim(env('PUBLIC_STORAGE_PATH'), '/');
+            $storageUrl  = rtrim(env('PUBLIC_STORAGE_URL'), '/');
+        }
+
+// المرفقات القديمة — مصفوفة مفهرسة باسم الوثيقة (Club::$attachments)
+$attachments = $club->attachments;
 
 foreach ($files as $file) {
 
@@ -72,7 +79,7 @@ foreach ($files as $file) {
             mkdir($storagePath . '/clubs/dossiers', 0755, true);
         }
 
-        // حذف القديم (اختياري)
+        // حذف القديم
         if (!empty($attachments[$file])) {
             $oldFilePath = str_replace($storageUrl, $storagePath, $attachments[$file]);
             if (file_exists($oldFilePath)) {
@@ -97,11 +104,12 @@ $newEtat = $club->etat === 'approved'
 
     /* ===== Update club ===== */
     $club->update([
-        'attachments' => json_encode($attachments),
+        // مصفوفة عادية فقط: cast 'array' في Club يتولى الترميز، لا json_encode هنا
+        'attachments' => $attachments,
         'etat'        => $newEtat,
+        'activity_id' => $activityId,
     ]);
 
-        
         return redirect()
             ->route('club.dossier.index')
             ->with('success', '✅ تم تحديث ملف النادي وإرساله للمراجعة');

@@ -141,6 +141,14 @@
 
         <div class="col-md-4">
             <div class="dash-card">
+                <h5>🪪 بطاقتي</h5>
+                <p class="text-muted">بطاقة اللاعب للموسم الحالي (عرض، طباعة، QR)</p>
+                <a href="{{ route('person.card') }}" class="btn btn-main btn-sm">عرض بطاقتي</a>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="dash-card">
                 <h5>⭐ النشاطات المتاحة</h5>
                 <p class="text-muted">تصفح وقم بالحجز</p>
                 <a href="{{ route('activities.index') }}" class="btn btn-main btn-sm">أستكشف النشاطات المتاحة</a>

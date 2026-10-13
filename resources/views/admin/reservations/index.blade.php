@@ -3,9 +3,9 @@
 @section('content')
 <div class="container-fluid" style="direction: rtl">
 
-{{-- ================= FILTRES (ADMIN ONLY) ================= --}}
+{{-- ================= FILTRES (ADMIN / FINANCIER) ================= --}}
 @auth
-@if(auth()->user()->type === 'admin')
+@if(in_array(auth()->user()->type, ['admin', 'financier']))
 
 <div class="card mb-3">
     <div class="card-body">
@@ -59,6 +59,57 @@
 @endif
 @endauth
 
+{{-- ================= TUILLES ÉTAT FINANCIER (admin / financier) ================= --}}
+@if(in_array(auth()->user()->type, ['admin', 'financier']))
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="fs-4 fw-bold text-primary" id="statTotalPaid">{{ number_format($totalPaidAmount ?? 0, 0, ',', ' ') }} دج</div>
+            <div class="text-muted small fw-bold">💰 المجموع المدفوع</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="fs-4 fw-bold text-success" id="statPaidCount">{{ $paidCount ?? 0 }}</div>
+            <div class="text-muted small fw-bold">✅ حجوزات مدفوعة</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="fs-4 fw-bold text-secondary" id="statPendingCount">{{ $pendingCount ?? 0 }}</div>
+            <div class="text-muted small fw-bold">⏳ غير مدفوعة</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="fs-4 fw-bold text-dark" id="statTotalRes">{{ ($reservations ?? collect())->count() }}</div>
+            <div class="text-muted small fw-bold">📝 إجمالي الحجوزات</div>
+        </div>
+    </div>
+</div>
+
+{{-- ================= SOMMES PAR COMPLEX / ACTIVITE ================= --}}
+<div class="card shadow-sm mb-3">
+    <div class="card-header fw-bold bg-white">💰 المبالغ حسب المركب والنشاط</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle text-center mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>المركب</th>
+                        <th>النشاط</th>
+                        <th>الحجوزات</th>
+                        <th>المدفوع (دج)</th>
+                        <th>غير المدفوع (دج)</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+@endif
+
 {{-- ================= MESSAGE SUCCESS ================= --}}
 @if(session('success'))
     <div class="alert alert-success fw-bold">
@@ -103,7 +154,9 @@
 @foreach($reservations as $r)
 <tr
     data-complex="{{ $r->complexActivity->complex->id ?? '' }}"
+    data-complex-name="{{ $r->complexActivity->complex->nom ?? '—' }}"
     data-activity="{{ $r->complexActivity->activity->id ?? '' }}"
+    data-activity-name="{{ $r->complexActivity->activity->title ?? '—' }}"
     data-user-type="{{ $r->user->type ?? '' }}"
      data-schedule="{{ $r->schedule->id ?? '' }}"
      data-price="{{ $r->total_price ?? 0 }}"
@@ -201,7 +254,7 @@
     {{ $r->payment_status==='paid'?'مدفوع':'غير مدفوع' }}
 </span>
 
-@if(auth()->user()->type === 'admin')
+@if(in_array(auth()->user()->type, ['admin', 'financier']))
 
     @if($r->payment_status !== 'paid')
 
@@ -251,13 +304,14 @@
             onclick="printReservation({{ $r->id }})">🖨️</button>
 
     
-
+    @if(auth()->user()->type === 'admin')
     <form action="{{ route('reservations.destroy',$r) }}"
           method="POST" class="d-inline">
         @csrf @method('DELETE')
         <button onclick="return confirm('حذف؟')"
                 class="btn btn-sm btn-danger">🗑</button>
     </form>
+    @endif
 </td>
 
 </tr>
@@ -294,6 +348,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const rows = document.querySelectorAll('#schedulesTable tbody tr');
     const totalPaidEl = document.getElementById('totalPaidPrice');
 
+    const statTotalPaid    = document.getElementById('statTotalPaid');
+    const statPaidCount    = document.getElementById('statPaidCount');
+    const statPendingCount = document.getElementById('statPendingCount');
+    const statTotalRes     = document.getElementById('statTotalRes');
+    const summaryBody      = document.getElementById('summaryBody');
+
     if (!rows.length || !totalPaidEl) return;
 
     // format DZD
@@ -307,7 +367,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const a = filterActivity?.value || '';
         const s = filterSchedule?.value || '';
 
-        let totalPaid = 0;
+        let totalPaid   = 0;
+        let paidCount   = 0;
+        let pendingCount = 0;
+        let totalRows   = 0;
+        const groups    = {};
 
         rows.forEach(row => {
 
@@ -326,8 +390,28 @@ document.addEventListener('DOMContentLoaded', function () {
             row.style.display = show ? '' : 'none';
 
             // ✅ حساب المدفوع فعليًا فقط
-            if (show && isPaid) {
-                totalPaid += price;
+            if (show) {
+                totalRows++;
+
+                if (isPaid) {
+                    totalPaid += price;
+                    paidCount++;
+                } else {
+                    pendingCount++;
+                }
+
+                // 📊 تجميع حسب المركب + النشاط
+                const key = (rc || 'x') + '|' + (ra || 'x');
+                const g = groups[key] || {
+                    complex:  row.dataset.complexName || '—',
+                    activity: row.dataset.activityName || '—',
+                    count:    0,
+                    paid:     0,
+                    unpaid:   0
+                };
+                g.count++;
+                if (isPaid) { g.paid   += price; } else { g.unpaid += price; }
+                groups[key] = g;
             }
         });
 
@@ -336,8 +420,31 @@ totalPaidEl.innerHTML =
       Math.round(totalPaid).toLocaleString('fr-FR')  +
     '</span> ';
 
+        // ⬆ Mise à jour des tuiles filtrées
+        if (statTotalPaid)    statTotalPaid.textContent    = Math.round(totalPaid).toLocaleString('fr-FR') + ' دج';
+        if (statPaidCount)    statPaidCount.textContent    = paidCount;
+        if (statPendingCount) statPendingCount.textContent = pendingCount;
+        if (statTotalRes)     statTotalRes.textContent     = totalRows;
+
+        // ⬆ Sommes par complex / activité
+        if (summaryBody) {
+            const rowsData = Object.values(groups);
+            summaryBody.innerHTML = rowsData.length
+                ? rowsData.map(g =>
+                    '<tr>' +
+                        '<td>' + g.complex  + '</td>' +
+                        '<td>' + g.activity + '</td>' +
+                        '<td>' + g.count    + '</td>' +
+                        '<td>' + Math.round(g.paid).toLocaleString('fr-FR') + '</td>' +
+                        '<td>' + Math.round(g.unpaid).toLocaleString('fr-FR') + '</td>' +
+                    '</tr>'
+                ).join('')
+                : '<tr><td colspan="5" class="text-center text-muted py-3">لا توجد بيانات</td></tr>';
+        }
 
     }
+
+    window.applyFilters = applyFilters;
 
     // Events
     filterComplex?.addEventListener('change', applyFilters);

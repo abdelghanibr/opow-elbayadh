@@ -52,6 +52,7 @@
                 <tr>
                     <th>#</th>
                     <th>صاحب الملف</th>
+                    <th>الولي (لفئتي طفل)</th>
                     <th>الحساب</th>
                     <th>العمر</th>
                     <th>الحالة</th>
@@ -73,6 +74,15 @@
 
                     $files = json_decode($d->attachments, true) ?? [];
 
+                    $accountName = $d->person->user->name
+                        ?? optional(optional($d->person->parent)->user)->name
+                        ?? '—';
+
+                    $isChild = !empty($d->person->parent_id);
+                    $parentFullName = $d->person->parent
+                        ? trim(($d->person->parent->firstname ?? '') . ' ' . ($d->person->parent->lastname ?? ''))
+                        : '';
+
                     $labels = [
                         'medical_certificate'      => '🩺 شهادة طبية',
                         'birth_certificate'        => '🧾 شهادة الميلاد',
@@ -90,9 +100,25 @@
                     <td class="fw-semibold small">
                         {{ $d->person->firstname ?? '' }}
                         {{ $d->person->lastname ?? '' }}
+                        @if($isChild)
+                            <span class="badge bg-info-subtle text-info ms-1" title="هذا الملف لطفل مسجل تحت حساب ولي">👶 طفل</span>
+                        @else
+                            <span class="badge bg-secondary-subtle text-secondary ms-1" title="هذا الملف لشخص كامل (ولي)">👤 ولي</span>
+                        @endif
                     </td>
 
-                    <td class="small">{{ $d->person->user->name ?? '—' }}</td>
+                    {{-- 👶 اسم الولي (إذا كان الملف لطفل) --}}
+                    <td class="small">
+                        @if($isChild && $parentFullName !== '')
+                            <span class="d-inline-block">
+                                👨‍👦 {{ $parentFullName }}
+                            </span>
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
+
+                    <td class="small">{{ $accountName }}</td>
 
                     {{-- العمر --}}
                     <td>
@@ -274,5 +300,5 @@ table thead th {
 </style>
 @endpush
 @push('js')
-@include('admin.partials.datatable-script', ['tableId' => '#dossiersTable'])
+@include('admin.partials.datatable-script', ['tableId' => '#dossiersTable', 'colEtat' => 5, 'colOwner' => 1, 'colAccount' => 3, 'colAge' => 4])
 @endpush

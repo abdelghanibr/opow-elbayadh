@@ -3,7 +3,12 @@
 @section('content')
 <div class="container py-4" style="direction:rtl;text-align:right;max-width:1000px">
 
-    <h3 class="fw-bold mb-4">✏️ تعديل ملف المؤسسة</h3>
+    <h3 class="fw-bold mb-4">✏️ تعديل ملف المؤسسة
+        @php $type = $enterprise->company_type ?? 'privee'; @endphp
+        <span class="badge {{ $type === 'public' ? 'bg-primary' : 'bg-secondary' }}">
+            {{ $type === 'public' ? 'مؤسسة عمومية' : 'مؤسسة خاصة' }}
+        </span>
+    </h3>
 <div class="alert alert-info py-2 small">
     📎 يُرجى التأكد من أن حجم كل ملف مرفق لا يتجاوز <strong>5 ميغابايت (5MB)</strong>.
 </div>
@@ -19,18 +24,29 @@
         @method('PUT')
 
         @php
-        $files = [
+        $type = $enterprise->company_type ?? 'privee';
+
+        $publicDocs = [
+            'written_request'     => 'الطلب الخطي',
+            'agreement'           => 'الاتفاقية',
+            'trainees_insurance'  => 'تأمين المتدربين',
+            'beneficiaries_list'  => 'قوائم المستفيدين',
+        ];
+
+        $privateDocs = [
             'registre_commerce'      => 'السجل التجاري',
             'statut'                 => 'القانون الأساسي للمؤسسة',
             'tax_number'             => 'البطاقة الجبائية',
             'bank_rib'               => 'شهادة RIB بنكي',
             'insurance_certificate'  => 'شهادة التأمين',
-            'rules_book'             => 'دفتر الشروط',
+            'rules_book'             => 'الإتفاقية',
             'minutes_meeting'        => 'محضر الجمعية (إن وجد)',
             'exploitation_request'   => 'طلب الاستغلال'
         ];
 
-        $attachments = json_decode($enterprise->attachments ?? '{}', true);
+        $files = ($type === 'public') ? $publicDocs : $privateDocs;
+
+        $attachments = $enterprise->attachments ?? [];
         @endphp
 
         <div class="row g-3">

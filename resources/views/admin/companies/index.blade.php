@@ -53,7 +53,7 @@
             @foreach($companies as $c)
 
                 @php
-                    $files = json_decode($c->attachments, true) ?? [];
+                    $files = $c->attachments ?? [];
 
                     $labels = [
                         'agreement'              => '🏛️ اعتماد المؤسسة',
@@ -62,15 +62,26 @@
                         'coaches_certificates'   => '🎓 شهادات المدربين',
                         'federation_affiliation' => '🏅 شهادة الانخراط في الرابطة',
                         'insurance_certificate'  => '🛡️ شهادة التأمين',
-                        'rules_book'             => '📘 دفتر الشروط',
+                        'rules_book'             => '📘 الإتفاقية',
                         'minutes_meeting'        => '📝 محضر الجمعية العامة',
                         'exploitation_request'   => '📄 طلب الاستغلال',
+                        // مؤسسة عمومية
+                        'written_request'        => '✍️ الطلب الخطي',
+                        'agreement'              => '📘 الاتفاقية',
+                        'trainees_insurance'     => '🛡️ تأمين المتدربين',
+                        'beneficiaries_list'     => '📋 قوائم المستفيدين',
                     ];
+                    $cType = $c->company_type ?? 'privee';
                 @endphp
 
                 <tr>
                     <td>{{ $c->id }}</td>
-                    <td class="fw-semibold">{{ $c->nom }}</td>
+                    <td class="fw-semibold">
+                        {{ $c->nom }}
+                        <span class="badge {{ $cType === 'public' ? 'bg-primary' : 'bg-secondary' }}">
+                            {{ $cType === 'public' ? 'عمومية' : 'خاصة' }}
+                        </span>
+                    </td>
                     <td>
                         <span class="complex d-none">{{ $c->user?->complex?->nom ?? '—' }}</span>
                         <span class="badge bg-info-subtle text-info-emphasis">{{ $c->user?->complex?->nom ?? '—' }}</span>

@@ -54,6 +54,9 @@
                                 <option value="admin" {{ old('type', $admin->type) === 'admin' ? 'selected' : '' }}>
                                     👮 مسؤول كامل (وصول شامل)
                                 </option>
+                                <option value="financier" {{ old('type', $admin->type) === 'financier' ? 'selected' : '' }}>
+                                    💰 مالي (حالة مالية)
+                                </option>
                                 <option value="verify_qr" {{ old('type', $admin->type) === 'verify_qr' ? 'selected' : '' }}>
                                     📷 مدقق QR (تحقق من التذاكر)
                                 </option>

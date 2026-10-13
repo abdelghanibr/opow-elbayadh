@@ -27,6 +27,7 @@
                             <div class="result-row"><span>السعر</span><strong>{{ number_format($ticket->seatType->price, 0, ',', '.') }} د.ج</strong></div>
                             <div class="result-row"><span>التاريخ</span><strong>{{ $ticket->match->match_date }} {{ $ticket->match->match_time }}</strong></div>
                             <div class="result-row"><span>الحالة</span><strong style="color:#12a86b">مدفوعة</strong></div>
+                            <div class="result-row"><span>وقت المسح</span><strong>{{ optional($ticket->scanned_at)->format('Y/m/d H:i') }}</strong></div>
                         </div>
                     @endif
                 </div>
@@ -57,6 +58,39 @@
                     @endif
                 </div>
 
+            @elseif($result === 'already_scanned')
+                <div class="verify-result already-scanned">
+                    <div class="result-icon"><i class="fa-solid fa-ban"></i></div>
+                    <h5>{{ $message }}</h5>
+                    @if(isset($ticket))
+                        <div class="result-details">
+                            <div class="result-row"><span>رقم التذكرة</span><strong>#{{ $ticket->id }}</strong></div>
+                            <div class="result-row"><span>الاسم</span><strong>{{ $ticket->buyer_name }}</strong></div>
+                            <div class="result-row"><span>المباراة</span><strong>{{ $ticket->match->homeTeam->name }} vs {{ $ticket->match->awayTeam->name }}</strong></div>
+                            <div class="result-row"><span>نوع المقعد</span><strong>{{ $ticket->seatType->name }}</strong></div>
+                            <div class="result-row"><span>وقت أول مسح</span><strong>{{ optional($ticket->scanned_at)->format('Y/m/d H:i') ?? '—' }}</strong></div>
+                            <div class="result-row"><span>بواسطة</span><strong>{{ $ticket->scanner->name ?? 'غير معروف' }}</strong></div>
+                        </div>
+
+                        @if(auth()->user()?->type === 'admin')
+                            <form action="{{ route('ticket.reset-scan') }}" method="POST" class="mt-3">
+                                @csrf
+                                <input type="hidden" name="ticket_id" value="{{ $ticket->id }}">
+                                <button type="submit" class="verify-btn outline">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                    إلغاء الوسم وإعادة المسح
+                                </button>
+                            </form>
+                        @endif
+                    @endif
+                </div>
+
+            @elseif($result === 'reset')
+                <div class="verify-result reset">
+                    <div class="result-icon"><i class="fa-solid fa-rotate-left"></i></div>
+                    <h5>{{ $message }}</h5>
+                </div>
+
             @else
                 <div class="verify-result invalid">
                     <div class="result-icon"><i class="fa-solid fa-circle-xmark"></i></div>
@@ -75,6 +109,11 @@
             <h6><i class="fa-solid fa-camera"></i> مسح بالكاميرا</h6>
             <div id="reader" style="width:100%; border-radius:12px; overflow:hidden;"></div>
             <div id="scan-result" class="scan-result-box"></div>
+            @if(isset($result))
+                <a href="{{ route('tickets.verify-qr') }}" class="verify-btn outline mt-3" style="text-decoration:none">
+                    <i class="fa-solid fa-rotate-right"></i> مسح تذكرة أخرى
+                </a>
+            @endif
         </div>
 
         <div class="verify-divider">
@@ -94,11 +133,17 @@
             </form>
         </div>
 
-        <div class="verify-section mt-3">
-            <a href="{{ route('matches.public') }}" class="verify-btn outline">
-                <i class="fa-solid fa-futbol"></i>
-                العودة للمباريات
-            </a>
+        <div class="verify-section mt-3 pwa-install-box" id="pwaInstallBox" style="display:none">
+            <div class="pwa-install-content">
+                <img src="/pwa/icons/icon-192.png" alt="تحقق QR" class="pwa-install-icon">
+                <div class="pwa-install-text">
+                    <strong>تثبيت تطبيق «تحقق QR»</strong>
+                    <span>ثبّت التطبيق للوصول السريع إلى أداة التحقق</span>
+                </div>
+                <button type="button" id="pwaInstallBtn" class="verify-btn">
+                    <i class="fa-solid fa-download"></i> تثبيت
+                </button>
+            </div>
         </div>
     </div>
 
@@ -106,26 +151,83 @@
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
-    const html5QrCode = new Html5Qrcode("reader");
+    (function () {
+        const HAS_RESULT = @if(isset($result)) true @else false @endif;
+        if (HAS_RESULT) return;
 
-    html5QrCode.start(
-        { facingMode: "environment" },
-        {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-        },
-        (decodedText) => {
-            html5QrCode.stop();
+        let submitted = false;
+
+        function submitOnce(decodedText) {
+            if (submitted) return;
+            submitted = true;
+
+            const box = document.getElementById('scan-result');
+            if (box) box.innerHTML = '<div style="text-align:center;padding:12px;color:#94a3b8;font-size:0.85rem;">جارٍ التحقق…</div>';
+
+            const stop = html5QrCode.stop();
+            if (stop && typeof stop.catch === 'function') stop.catch(function () {});
+
             document.getElementById('qrDataInput').value = decodedText;
             document.getElementById('manualForm').submit();
-        },
-        (errorMessage) => {}
-    ).catch((err) => {
+        }
+
+        const html5QrCode = new Html5Qrcode("reader");
+
+        html5QrCode.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            },
+            (decodedText) => submitOnce(decodedText),
+            (errorMessage) => {}
+        ).catch((err) => {
         document.getElementById('reader').innerHTML =
             '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:0.85rem;">' +
             '<i class="fa-solid fa-video-slash" style="font-size:1.5rem;display:block;margin-bottom:8px;"></i>' +
             'الكاميرا غير متوفرة — استخدم الإدخال اليدوي</div>';
+    });
+    })();
+
+    /* ======== PWA : Service Worker ======== */
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('/pwa/sw.js').catch(function (err) {
+                console.warn('SW registration failed', err);
+            });
+        });
+    }
+
+    /* ======== PWA : bannière d'installation ======== */
+    let deferredPrompt = null;
+    const installBox = document.getElementById('pwaInstallBox');
+    const installBtn = document.getElementById('pwaInstallBtn');
+
+    window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (installBox) installBox.style.display = 'block';
+    });
+
+    if (installBtn) {
+        installBtn.addEventListener('click', async function () {
+            if (!deferredPrompt) {
+                // iOS / navigation non-supportée : guide manuel
+                alert('للتثبيت: اضغط زر المشاركة ثم «إضافة إلى الشاشة الرئيسية»');
+                return;
+            }
+            deferredPrompt.prompt();
+            const choice = await deferredPrompt.userChoice;
+            if (choice.outcome === 'accepted') {
+                if (installBox) installBox.style.display = 'none';
+            }
+            deferredPrompt = null;
+        });
+    }
+
+    window.addEventListener('appinstalled', function () {
+        if (installBox) installBox.style.display = 'none';
     });
 </script>
 @endsection
@@ -277,6 +379,27 @@ body { font-family: "Cairo", sans-serif !important; }
     border-color: #fca5a5;
 }
 
+.verify-result.already-scanned {
+    background: #7f1d1d;
+    border-color: #991b1b;
+    color: #fff;
+}
+
+.verify-result.already-scanned .result-icon { color: #fecaca; }
+.verify-result.already-scanned h5 { color: #fff; }
+.verify-result.already-scanned .result-details { border: 2px solid #991b1b; }
+.verify-result.already-scanned .result-row { border-bottom-color: #fee2e2; }
+.verify-result.already-scanned .result-row span { color: #fecaca; }
+.verify-result.already-scanned .result-row strong { color: #fff; }
+
+.verify-result.reset {
+    background: #eff6ff;
+    border-color: #93c5fd;
+}
+
+.verify-result.reset .result-icon { color: #2563eb; }
+.verify-result.reset h5 { color: #1d4ed8; }
+
 .result-icon {
     font-size: 3rem;
     margin-bottom: 8px;
@@ -333,6 +456,53 @@ body { font-family: "Cairo", sans-serif !important; }
     text-align: center;
     font-weight: 700;
     font-size: 0.85rem;
+}
+
+/* ===== PWA install box ===== */
+.pwa-install-box {
+    background: linear-gradient(135deg, #082f57, #0b3d70);
+    border-radius: 16px;
+    padding: 12px 16px;
+    color: #fff;
+}
+
+.pwa-install-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.pwa-install-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.pwa-install-text {
+    flex: 1;
+    min-width: 150px;
+}
+
+.pwa-install-text strong {
+    display: block;
+    font-size: 0.95rem;
+}
+
+.pwa-install-text span {
+    font-size: 0.75rem;
+    opacity: 0.85;
+}
+
+.pwa-install-content .verify-btn {
+    margin-top: 0;
+    background: #fff;
+    color: #082f57;
+    white-space: nowrap;
+    padding: 10px 18px;
+    font-size: 0.82rem;
 }
 </style>
 @endpush

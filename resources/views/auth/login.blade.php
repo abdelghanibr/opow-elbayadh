@@ -111,8 +111,8 @@
         <label>البريد الإلكتروني أو اسم المستخدم</label>
         <input type="text" name="login" class="form-control" placeholder="البريد الإلكتروني أو اسم المستخدم" required>
 
-        <label class="mt-3">كلمة المرور</label>
-        <input type="password" name="password" class="form-control" placeholder="كلمة المرور" required>
+        <label class="mt-3">البيص</label>
+        <input type="password" name="password" class="form-control" placeholder="البيص" required>
 
         <div class="mt-3 mb-2">
             <input type="checkbox" name="remember">

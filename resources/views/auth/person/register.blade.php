@@ -111,43 +111,20 @@
                     <div id="reg_password_confirmation_feedback" class="mt-1" style="font-size:0.9rem;"></div>
                 </div>
 
-                <!-- Robot Check -->
+                <!-- Robot Check (reCAPTCHA) -->
+@if (!app()->environment('local'))
 <div class="mt-3">
     <label class="fw-bold d-block mb-1">🔐 التحقق أنني لست روبوت :</label>
 
-    <p class="text-muted mb-2">
-        يرجى كتابة الكلمة التالية كما هي تماماً:
-    </p>
-
-    <!-- الكلمة داخل إطار جميل -->
-    <div style="
-        border: 2px dashed #007bff;
-        padding: 10px 15px;
-        border-radius: 8px;
-        font-size: 1.3rem;
-        font-weight: bold;
-        text-align: center;
-        background: #f8f9fa;
-        color: #007bff;
-        letter-spacing: 2px;
-        margin-bottom: 15px;
-        
-    ">
-        {{ $correctWord }}
+    <div class="captcha-wrapper">
+        <div class="g-recaptcha" data-sitekey="{{ env('RECAPTCHA_SITE_KEY') }}"></div>
     </div>
 
-    <input type="text" 
-           name="captcha_word" 
-           id="reg_captcha"
-           class="form-control text-center"
-           placeholder="اكتب الكلمة هنا" 
-           required>
-
-    @error('captcha_word')
+    @error('g-recaptcha-response')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
-    <div id="reg_captcha_feedback" class="mt-1" style="font-size:0.9rem;"></div>
 </div>
+@endif
 
 
 
@@ -235,6 +212,10 @@
 {{-- Scripts --}}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
+@if (!app()->environment('local'))
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+@endif
+
 {{-- CSS --}}
 <style>
 
@@ -257,6 +238,12 @@
     color:#b71c1c;
     font-size:.9rem;
     margin-top:4px;
+}
+
+.captcha-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 6px;
 }
 
 .privacy-zone-person,
@@ -355,7 +342,6 @@
 <script>
 (function () {
     const form = document.getElementById('personRegisterForm');
-    const captchaWord = {!! json_encode(strtolower($correctWord)) !!};
     const checkEmailUrl = "{{ route('person.check-email') }}";
 
     function el(id) { return document.getElementById(id); }
@@ -366,7 +352,6 @@
         reg_nin: { check: v => /^\d{18}$/.test(v), ok: 'NIN صحيح (18 رقمًا) ✔', err: 'يجب أن يتكون من 18 رقمًا بالضبط' },
         reg_password: { check: v => v.length >= 8, ok: 'قوة كلمة المرور مقبولة ✔', err: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' },
         reg_password_confirmation: { check: v => v === el('reg_password').value, ok: 'كلمتا المرور متطابقتان ✔', err: 'كلمتا المرور غير متطابقتين' },
-        reg_captcha: { check: v => v.trim().toLowerCase() === captchaWord, ok: 'التحقق صحيح ✔', err: 'الكلمة غير صحيحة، أعد كتابتها' },
     };
 
     function setState(input, feedback, ok, msg) {

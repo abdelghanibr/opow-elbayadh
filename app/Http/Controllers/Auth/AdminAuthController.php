@@ -59,8 +59,8 @@ class AdminAuthController extends Controller
 
             $user = Auth::user();
 
-            // التأكد من أن المستخدم Admin أو مدقق QR
-            if (!in_array($user->type, ['admin', 'verify_qr'])) {
+            // التأكد من أن المستخدم Admin / Financier / مدقق QR
+            if (!in_array($user->type, ['admin', 'financier', 'verify_qr'])) {
                 Auth::logout();
                 return back()->withErrors([
                     'email' => '⛔ هذا الحساب غير مصرح له بالدخول إلى لوحة الإدارة',
@@ -75,6 +75,13 @@ class AdminAuthController extends Controller
             // ================================
             if ($user->type === 'verify_qr') {
                 return redirect()->route('tickets.verify-qr');
+            }
+
+            // ================================
+            // 💰 المالي → صفحة الحجوزات (الوضعية المالية) مباشرة
+            // ================================
+            if ($user->type === 'financier') {
+                return redirect()->route('reservations.index');
             }
 
             // ================================

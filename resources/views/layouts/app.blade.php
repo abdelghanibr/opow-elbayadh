@@ -2,9 +2,19 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>{{ config('app.name') }}</title>
-    
+
+    {{-- ===== PWA ===== --}}
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#082f57">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="تحقق QR">
+    <link rel="apple-touch-icon" href="/pwa/icons/icon-192.png">
+    <link rel="apple-touch-startup-image" href="/pwa/icons/icon-512.png">
+
     
 
 
@@ -243,7 +253,7 @@
     // -------------------------
     // 🧭  Dashboard Route
     // -------------------------
-    if ($user->type === 'admin') {
+    if ($user->type === 'admin' || $user->type === 'financier') {
         // إذا كان لديه مجمع محدد
         if (!is_null($user->complex_id) && $user->complex_id != 0) {
             $dashboardRoute = route('admin.dashboard_complex', $user->complex_id);
@@ -269,6 +279,7 @@
     // -------------------------
     $profileRoute = match($user->type){
         'admin'      => route('admin.profile.edit'),
+        'financier'  => route('admin.profile.edit'),
         'verify_qr'  => route('admin.profile.edit'),
         'club'       => route('club.profile.edit'),
         'person'     => route('person.profile.edit'),
@@ -292,6 +303,7 @@
     // -------------------------
     $logoutRoute = match($user->type){
         'admin'      => 'admin.logout',
+        'financier'  => 'admin.logout',
         'verify_qr'  => 'admin.logout',
         'club'       => 'club.logout',
         'company',
@@ -321,9 +333,19 @@
                 <i class="fa-solid fa-house"></i> الرئيسية
             </a>
 
+            @if($user->type === 'financier')
+            <a href="{{ route('reservations.index') }}" class="btn btn-main btn-nav">
+                <i class="fa-solid fa-sack-dollar"></i> الوضعية المالية
+            </a>
+            @elseif($user->type === 'verify_qr')
+            <a href="{{ $dashboardRoute }}" class="btn btn-main btn-nav">
+                <i class="fa-solid fa-qrcode"></i> مسح QR
+            </a>
+            @else
             <a href="{{ $dashboardRoute }}" class="btn btn-main btn-nav">
                 <i class="fa-solid fa-gauge"></i> لوحة التحكم
             </a>
+            @endif
 
             @if($dossierRoute !== '#')
             <a href="{{ $dossierRoute }}" class="btn btn-success btn-nav">

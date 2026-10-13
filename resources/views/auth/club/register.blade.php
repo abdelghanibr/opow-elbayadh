@@ -84,41 +84,19 @@
                     <input type="password" name="password_confirmation" id="club_password_confirmation" class="form-control" required>
                 </div>
 
+@if (!app()->environment('local'))
 <div class="mt-3">
     <label class="fw-bold d-block mb-1">🔐 التحقق أنني لست روبوت :</label>
 
-    <p class="text-muted mb-2">
-        يرجى كتابة الكلمة التالية كما هي تماماً:
-    </p>
-
-    <!-- الكلمة داخل إطار جميل -->
-    <div style="
-        border: 2px dashed #007bff;
-        padding: 10px 15px;
-        border-radius: 8px;
-        font-size: 1.3rem;
-        font-weight: bold;
-        text-align: center;
-        background: #f8f9fa;
-        color: #007bff;
-        letter-spacing: 2px;
-        margin-bottom: 15px;
-        
-    ">
-        {{ $correctWord }}
+    <div class="captcha-wrapper">
+        <div class="g-recaptcha" data-sitekey="{{ env('RECAPTCHA_SITE_KEY') }}"></div>
     </div>
 
-    <input type="text" 
-           name="captcha_word" 
-           id="club_captcha"
-           class="form-control text-center"
-           placeholder="اكتب الكلمة هنا" 
-           required>
-
-    @error('captcha_word')
+    @error('g-recaptcha-response')
         <div class="text-danger small mt-1">{{ $message }}</div>
     @enderror
 </div>
+@endif
 
 
                 <!-- Privacy Zone -->
@@ -233,9 +211,18 @@
     color:white;
 }
 
+.captcha-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 6px;
+}
+
 </style>
 
 @push('js')
+@if (!app()->environment('local'))
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+@endif
 <script>
 var checkEmailUrl = "{{ route('auth.check-email') }}";
 
@@ -296,12 +283,6 @@ document.getElementById('clubRegisterForm').addEventListener('submit', function(
     var confirm = document.getElementById('club_password_confirmation').value;
     if (password !== confirm) {
         errors.push('كلمتا المرور غير متطابقتين.');
-        valid = false;
-    }
-
-    var captcha = document.getElementById('club_captcha').value.trim();
-    if (!captcha) {
-        errors.push('التحقق من الروبوت مطلوب.');
         valid = false;
     }
 

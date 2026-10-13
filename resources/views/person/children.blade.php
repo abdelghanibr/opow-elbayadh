@@ -100,6 +100,12 @@
                                 </span>
                             @endif
 
+                            @if($child->firstname)
+                                <a href="{{ route('person.children.card', $child->id) }}" target="_blank" class="btn btn-primary btn-sm">
+                                    🪪 بطاقة اللاعب
+                                </a>
+                            @endif
+
                             @if($child->dossier && $child->dossier->attachments)
                                 <a href="{{ route('dossier.print', $child->dossier->id) }}" target="_blank" class="btn btn-outline-primary btn-sm">
                                     <i class="fa-solid fa-folder-open"></i> عرض الملف

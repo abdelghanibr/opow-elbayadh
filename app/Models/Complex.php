@@ -18,8 +18,21 @@ class Complex extends Model
         'phone',
         'capacite_mi',
         'capacite_ma',
+        'allow_time_conflict',
         'image','type','user_id'
     ];
+
+    protected $casts = [
+        'allow_time_conflict' => 'boolean',
+    ];
+
+    /**
+     * 🚦 هل يسمح هذا المركب بتداخل الأوقات بين الأفواج؟
+     */
+    public function allowsTimeConflict(): bool
+    {
+        return (bool) $this->allow_time_conflict;
+    }
 
     /**
      * 🔵 علاقة المركب مع الأنشطة عبر جدول pivot: complex_activity

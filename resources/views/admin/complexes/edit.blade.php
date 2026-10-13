@@ -98,6 +98,40 @@
                                 @error('capacite_mi') <div class="text-danger small mt-2">{{ $message }}</div> @enderror
                             </div>
 
+                            <!-- Autorisation des conflits horaires -->
+                            <div class="col-12">
+                                <div class="card border-0 shadow-sm rounded-4"
+                                     style="background: linear-gradient(135deg, #eef2ff, #e0f2fe);">
+                                    <div class="card-body">
+                                        <input type="hidden" name="allow_time_conflict" value="0">
+
+                                        <label class="form-label fw-bold d-block">🚦 تعارض المواعيد</label>
+
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   role="switch"
+                                                   id="allowTimeConflict"
+                                                   name="allow_time_conflict"
+                                                   value="1"
+                                                   {{ old('allow_time_conflict', $complex->allow_time_conflict) ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="allowTimeConflict">
+                                                السماح بتداخل أوقات الأفواج
+                                            </label>
+                                        </div>
+
+                                        <small class="text-muted d-block mt-2">
+                                            ✅ مفعّل = يمكن إنشاء عدة أفواج في نفس التوقيت داخل هذا المركب.<br>
+                                            ⛔ غير مفعّل = يمنع النظام حفظ فوج على توقيت مشغول.
+                                        </small>
+
+                                        @error('allow_time_conflict')
+                                            <div class="text-danger small mt-2">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Upload image - version renforcée -->
                             <div class="col-12 text-center">
                                 <label class="form-label mb-3 fw-semibold">📸 صورة المنشأة الرياضية</label>

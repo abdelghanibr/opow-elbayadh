@@ -22,7 +22,18 @@ class Ticket extends Model
         'qr_code',
         'status',
         'payment_id',
+        'scanned_at',
+        'scanned_by',
     ];
+
+    protected $casts = [
+        'scanned_at' => 'datetime',
+    ];
+
+    public function isScanned()
+    {
+        return $this->scanned_at !== null;
+    }
 
     public function match()
     {
@@ -37,5 +48,10 @@ class Ticket extends Model
     public function payment()
     {
         return $this->belongsTo(Payment::class, 'payment_id');
+    }
+
+    public function scanner()
+    {
+        return $this->belongsTo(User::class, 'scanned_by');
     }
 }

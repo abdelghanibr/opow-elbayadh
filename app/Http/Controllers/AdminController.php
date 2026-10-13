@@ -19,11 +19,18 @@ class AdminController extends Controller
 {
     public function __construct()
     {
-        // السماح بدخول المسؤول فقط
+        // السماح بدخول المسؤول، المالي ومدقق QR
         $this->middleware(function ($request, $next) {
-            if (!Auth::check() || Auth::user()->type !== 'admin') {
+            if (!Auth::check() || !in_array(Auth::user()->type, ['admin', 'financier', 'verify_qr'])) {
                 abort(403, 'غير مصرح لك بالدخول');
             }
+
+            // إدارة حسابات الإدارة: المسؤول العام فقط
+            if (Auth::user()->type !== 'admin'
+                && str_starts_with((string) $request->route()?->getName(), 'admins.')) {
+                abort(403, 'غير مصرح لك بالدخول');
+            }
+
             return $next($request);
         });
     }
@@ -532,7 +539,7 @@ public function programmeHebdo(Request $request, $id)
      */
     public function adminsIndex()
     {
-        $admins = User::where('type', 'admin')->with('complex')->get();
+        $admins = User::whereIn('type', ['admin', 'verify_qr', 'financier'])->with('complex')->get();
         return view('admin.admins.index', compact('admins'));
     }
 
@@ -550,7 +557,7 @@ public function programmeHebdo(Request $request, $id)
      */
     public function adminsStore(Request $request)
     {
-        $type = $request->input('type', 'admin') === 'verify_qr' ? 'verify_qr' : 'admin';
+        $type = in_array($request->input('type', 'admin'), ['verify_qr', 'financier']) ? $request->input('type') : 'admin';
 
         $request->validate([
             'name'       => 'required|string|max:255',
@@ -588,7 +595,7 @@ public function programmeHebdo(Request $request, $id)
     {
         $admin = User::findOrFail($id);
 
-        $type = $request->input('type', 'admin') === 'verify_qr' ? 'verify_qr' : 'admin';
+        $type = in_array($request->input('type', 'admin'), ['verify_qr', 'financier']) ? $request->input('type') : 'admin';
 
         $request->validate([
             'name'       => 'required',

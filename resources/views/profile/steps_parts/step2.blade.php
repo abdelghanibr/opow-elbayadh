@@ -10,7 +10,7 @@
             <label class="form-label">اسم الولي</label>
             <input type="text" name="parent_firstname"
                 class="form-control @error('parent_firstname') is-invalid @enderror"
-                value="{{ old('parent_firstname', $person->parent_firstname) }}">
+                value="{{ old('parent_firstname', $person->parent_firstname ?: (($parentPerson->firstname ?? '') ?: $person->firstname)) }}">
             @error('parent_firstname')
                 <small class="text-danger">{{ $message }}</small>
             @enderror
@@ -21,7 +21,7 @@
             <label class="form-label">لقب الولي</label>
             <input type="text" name="parent_lastname"
                 class="form-control @error('parent_lastname') is-invalid @enderror"
-                value="{{ old('parent_lastname', $person->parent_lastname) }}">
+                value="{{ old('parent_lastname', $person->parent_lastname ?: (($parentPerson->lastname ?? '') ?: $person->lastname)) }}">
             @error('parent_lastname')
                 <small class="text-danger">{{ $message }}</small>
             @enderror

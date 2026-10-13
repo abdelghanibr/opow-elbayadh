@@ -140,15 +140,15 @@
                     <td>{{ $s->nbr ?? '—' }}</td>
 
                     <td>
-                        @if(isset($scheduleSeasonCounts[$s->id]))
-                            @foreach($scheduleSeasonCounts[$s->id] as $row)
-                                <span class="badge bg-primary d-inline-block mb-1">
-                                    {{ $row->season_name }} : {{ $row->total }}
-                                </span><br>
-                            @endforeach
-                        @else
-                            <span class="text-muted">0</span>
-                        @endif
+                     @if(isset($scheduleSeasonCounts[$s->id]))
+    @foreach($scheduleSeasonCounts[$s->id]->reverse()->take(2) as $row)
+        <span class="badge bg-primary d-inline-block mb-1">
+            {{ $row->season_name }} : {{ $row->total }}
+        </span><br>
+    @endforeach
+@else
+    <span class="text-muted">0</span>
+@endif
                     </td>
 
                     <td>
@@ -204,6 +204,9 @@
                     <td>
                         <a href="{{ route('admin.schedules.edit', $s->id) }}"
                            class="btn btn-warning btn-sm">✏ تعديل</a>
+
+                        <a href="{{ route('admin.schedules.duplicate', $s->id) }}"
+                           class="btn btn-info btn-sm">📋 نسخ</a>
 
                         <form action="{{ route('admin.schedules.destroy', $s->id) }}"
                               method="POST" class="d-inline">

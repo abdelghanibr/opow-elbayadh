@@ -24,13 +24,56 @@ class AdminMiddleware
 
         $user = Auth::user();
 
-        // يسمح فقط للـ admin
-        if ($user->type !== 'admin') {
+        // يسمح للـ admin / financier / verify_qr
+        if (!in_array($user->type, ['admin', 'financier', 'verify_qr'])) {
             abort(403, 'غير مصرح لك');
         }
 
+        $routeName = (string) $request->route()?->getName();
+
+        // ================================
+        // 💰 المالي → فقط الوضعية المالية (الحجوزات / المبالغ حسب المركب)
+        // ================================
+        if ($user->type === 'financier') {
+            $allowedFinanceRoutes = [
+                'reservations.index',
+                'reservations.togglePayment',
+                'reservations.print',
+                'admin.profile.edit',
+                'admin.profile.update',
+            ];
+
+            if (in_array($routeName, $allowedFinanceRoutes)) {
+                return $next($request);
+            }
+
+            return redirect()->route('reservations.index');
+        }
+
+        // ================================
+        // 🎫 مدقق QR → فقط صفحة مسح التذاكر
+        // ================================
+        if ($user->type === 'verify_qr') {
+            $allowedVerifyRoutes = [
+                'tickets.verify-qr',
+                'ticket.check-qr',
+                'admin.profile.edit',
+                'admin.profile.update',
+            ];
+
+            if (in_array($routeName, $allowedVerifyRoutes)) {
+                return $next($request);
+            }
+
+            return redirect()->route('tickets.verify-qr');
+        }
+
+        // ================================
+        // 👑 مسؤول كامل → الجميع، مع منطق المجمع
+        // ================================
+
         // إذا طلب صفحة admin.dashboard
-        if ($request->route()->getName() === 'admin.dashboard') {
+        if ($routeName === 'admin.dashboard') {
 
             // إذا كان لديه complex_id → منعه من رؤية لوحة التحكم العامة
             if (!is_null($user->complex_id) && $user->complex_id != 0) {
@@ -39,7 +82,7 @@ class AdminMiddleware
         }
 
         // إذا طلب صفحة complex dashboard
-        if ($request->route()->getName() === 'admin.dashboard_complex') {
+        if ($routeName === 'admin.dashboard_complex') {
 
             $requestedId = $request->route('id');
 

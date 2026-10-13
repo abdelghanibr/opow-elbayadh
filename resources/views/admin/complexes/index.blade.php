@@ -24,6 +24,7 @@
                     <th>طاقة البالغين</th>
                     <th>طاقة القصر</th>
                     <th>الهاتف</th>
+                    <th>تعارض المواعيد</th>
                     <th>إجراءات</th>
                 </tr>
             </thead>
@@ -67,6 +68,19 @@
                     <td>{{ $c->capacite_ma ?? '—' }}</td>
                     <td>{{ $c->capacite_mi ?? '—' }}</td>
                     <td>{{ $c->telephone ?? '—' }}</td>
+
+                    <td>
+                        @php
+                            // $c peut être un modèle Complex ou un stdClass (DB::table)
+                            $allowsConflict = (bool) ($c->allow_time_conflict ?? false);
+                        @endphp
+
+                        @if($allowsConflict)
+                            <span class="badge bg-warning text-dark">✅ مسموح</span>
+                        @else
+                            <span class="badge bg-secondary">⛔ ممنوع</span>
+                        @endif
+                    </td>
 
                     <td>
                         <a href="{{ route('admin.complexes.edit', $c->id) }}" class="btn btn-sm btn-warning">✏ تعديل</a>

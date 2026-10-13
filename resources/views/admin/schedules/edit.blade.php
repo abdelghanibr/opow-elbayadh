@@ -1,5 +1,11 @@
 @extends('layouts.app')
 
+@php
+    $complexConflictMap = $complexes->mapWithKeys(
+        fn ($c) => [$c->id => $c->allowsTimeConflict() ? 1 : 0]
+    );
+@endphp
+
 @section('content')
 <div class="container py-5" style="direction: rtl; min-height: 100vh;">
     <div class="row justify-content-center">
@@ -7,7 +13,7 @@
 
             <div class="card-modern shadow-lg border-0 rounded-4 overflow-hidden">
                 <div class="card-header bg-gradient-warning text-white text-center py-4">
-                       <h3 class="fw-bold mb-0">✏ تعديل فوج</h3
+                       <h3 class="fw-bold mb-0">✏ تعديل فوج</h3>
                     <p class="small opacity-75 mt-2">تحديث بيانات الجدول: <strong>{{ $schedule->groupe }}</strong></p>
                 </div>
 
@@ -307,9 +313,15 @@
                         <!-- تعليمات التقويم -->
                         <div class="alert alert-soft-info rounded-4 p-3 text-center mt-4 shadow-sm">
                             <strong>تعديل الأوقات الأسبوعية:</strong><br>
-                            🟥 الأوقات الحمراء = محجوزة من جداول أخرى (لا يمكن اختيارها)<br>
+                            المنطقة الملوّنة = مواعيد مشغولة في المنشأة (كل نشاط بلونه الخاص)<br>
                             🟦 الأوقات الزرقاء = أوقات هذا الجدول الحالية<br>
-                            انقر واسحب لإضافة فترة جديدة • انقر على فترة زرقاء لإزالتها
+                            <em>انقر واسحب فترة زرقاء لنقلها • انقر عليها للحذف • اسحب مساحة فارغة لإضافة فترة جديدة</em>
+                        </div>
+
+                        <div id="conflictNotice" class="alert rounded-4 p-3 text-center mt-3 shadow-sm d-none"
+                             style="background: linear-gradient(135deg, #fef3c7, #fee2e2); border:none;">
+                            <strong>⚠️ هذا المركب يسمح بتداخل الأوقات</strong><br>
+                            يمكنك اختيار توقيت مشغول مسبقاً — لن يمنعك النظام من الحفظ.
                         </div>
 
                         <!-- التقويم -->
@@ -397,8 +409,7 @@
         border-radius: 6px;
     }
     .fc-bg-event {
-        background-color: #dc3545 !important;
-        opacity: 0.55 !important;
+        opacity: 0.5 !important;
         border: none;
         border-radius: 4px;
     }
@@ -410,13 +421,44 @@
 @push('js')
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script>
-let selectedSlots = {!! old('time_slots', $schedule->time_slots) !!};
+@php
+    $editSlotsRaw = old('time_slots', $schedule->time_slots ?? '[]');
+    $editSlotsArr = is_string($editSlotsRaw)
+        ? (json_decode($editSlotsRaw, true) ?: [])
+        : ($editSlotsRaw ?: []);
+@endphp
+let selectedSlots = {!! json_encode(array_values($editSlotsArr), JSON_UNESCAPED_UNICODE) !!};
 if (typeof selectedSlots === 'string') {
     try { selectedSlots = JSON.parse(selectedSlots); } catch(e) { selectedSlots = []; }
 }
 
+// identifiants stables pour chaque slot (drag & drop / suppression)
+let slotSeq = 0;
+selectedSlots = (Array.isArray(selectedSlots) ? selectedSlots : []).map(s => ({
+    _id: 'sel-' + (slotSeq++),
+    day_number: s.day_number,
+    start: s.start,
+    end: s.end
+}));
+
 function updateHiddenField() {
-    document.getElementById('time_slots').value = JSON.stringify(selectedSlots);
+    document.getElementById('time_slots').value = JSON.stringify(
+        selectedSlots.map(s => ({ day_number: s.day_number, start: s.start, end: s.end }))
+    );
+}
+
+function conflictsAllowed() {
+    const complexId = document.getElementById('complex').value;
+    return String({!! json_encode($complexConflictMap) !!}[complexId] || 0) === '1';
+}
+
+function refreshConflictNotice() {
+    const notice = document.getElementById('conflictNotice');
+    if (notice) notice.classList.toggle('d-none', !conflictsAllowed());
+}
+
+function overlapMinutes(aStart, aEnd, bStart, bEnd) {
+    return aStart < bEnd && aEnd > bStart;
 }
 
 document.getElementById('type_prix').addEventListener('change', function () {
@@ -424,74 +466,103 @@ document.getElementById('type_prix').addEventListener('change', function () {
 });
 
 document.addEventListener('DOMContentLoaded', function () {
+    // 📅 Semaine fixe : dimanche → samedi de la semaine courante
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
     const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
         initialView: 'timeGridWeek',
         locale: 'ar',
         direction: 'rtl',
-        firstDay: 1,
+        firstDay: 0,
+        initialDate: weekStart,
+        visibleRange: { start: weekStart, end: weekEnd },
+        headerToolbar: { left: '', center: 'title', right: '' },
         selectable: true,
         selectOverlap: false,
+        editable: true,
+        eventOverlap: false,
         slotMinTime: '05:00:00',
         slotMaxTime: '23:00:00',
         slotDuration: '01:00:00',
         height: 'auto',
         expandRows: true,
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'timeGridWeek,timeGridDay'
-        },
+        titleFormat: { weekday: 'long', day: 'numeric', month: 'long' },
+        dayHeaderFormat: { weekday: 'short' },
 eventDidMount(info) {
             if (info.event.display === 'background') {
 
                 const groupName = info.event.extendedProps?.groupe;
+                const actName = info.event.extendedProps?.activity;
                 if (!groupName) return;
 
                 const label = document.createElement('div');
-                label.innerText = groupName;
+                label.innerText = (actName ? actName + ' · ' : '') + groupName;
 
                 label.style.position = 'absolute';
-                label.style.top = '50%';
-                label.style.left = '50%';
-                label.style.transform = 'translate(-50%, -50%)';
-                label.style.fontSize = '8px';
+                label.style.top = '0';
+                label.style.left = '0';
+                label.style.right = '0';
+                label.style.bottom = '0';
+                label.style.display = 'flex';
+                label.style.alignItems = 'center';
+                label.style.justifyContent = 'center';
+                label.style.textAlign = 'center';
+                label.style.fontSize = '9px';
                 label.style.fontWeight = 'bold';
-         label.style.color = '#000';        // noir
-label.style.textShadow = 'none';   // اختياري
-                label.style.whiteSpace = 'nowrap';
-                label.style.opacity = '3';
-                label.style.textShadow = '0 1px 2px rgba(0,0,0,.6)';
+                label.style.color = '#fff';
+                label.style.whiteSpace = 'normal';
+                label.style.wordBreak = 'break-word';
+                label.style.overflow = 'hidden';
+                label.style.lineHeight = '1.1';
+                label.style.padding = '2px';
+                label.style.borderRadius = '4px';
+                label.style.background = info.event.backgroundColor || '#dc3545';
 
                 info.el.appendChild(label);
             }
         },
         select(info) {
-            const conflict = calendar.getEvents().some(ev =>
-                ev.display === 'background' &&
-                info.start < ev.end &&
-                info.end > ev.start
-            );
-
-            if (conflict) {
-                alert('⛔ هذا التوقيت محجوز من جدول آخر!');
-                calendar.unselect();
-                return;
-            }
-
             const day = info.start.getDay();
             const start = info.startStr.slice(11, 16);
             const end = info.endStr.slice(11, 16);
 
-            const exists = selectedSlots.some(s => s.day_number === day && s.start === start);
-            if (exists) {
-                alert('⚠ هذه الفترة موجودة بالفعل في جدولك');
-                calendar.unselect();
-                return;
+            // 🚦 منع الاختيار حسب إعداد المركب
+            if (!conflictsAllowed()) {
+
+                const conflict = calendar.getEvents().some(ev =>
+                    ev.display === 'background' &&
+                    info.start < ev.end &&
+                    info.end > ev.start
+                );
+
+                if (conflict) {
+                    alert('⛔ هذا التوقيت محجوز من جدول آخر!');
+                    calendar.unselect();
+                    return;
+                }
+
+                // ⛔ لا تداخل بين أوقات هذا الفوج
+                const selfOverlap = selectedSlots.some(s =>
+                    s.day_number === day && overlapMinutes(s.start, s.end, start, end)
+                );
+
+                if (selfOverlap) {
+                    alert('⛔ هذا التوقيت يتداخل مع توقيت موجود بالفعل في هذا الفوج');
+                    calendar.unselect();
+                    return;
+                }
             }
 
-            selectedSlots.push({ day_number: day, start, end });
+            const newSlot = { _id: 'sel-' + (slotSeq++), day_number: day, start, end };
+            selectedSlots.push(newSlot);
 
             calendar.addEvent({
+                id: newSlot._id,
                 start: info.start,
                 end: info.end,
                 classNames: ['selected-slot'],
@@ -504,24 +575,78 @@ label.style.textShadow = 'none';   // اختياري
 
         eventClick(info) {
             if (info.event.classNames.includes('selected-slot')) {
-                const day = info.event.start.getDay();
-                const start = info.event.startStr.slice(11, 16);
-                selectedSlots = selectedSlots.filter(s => !(s.day_number === day && s.start === start));
+                selectedSlots = selectedSlots.filter(s => s._id !== info.event.id);
                 info.event.remove();
                 updateHiddenField();
             }
+        },
+
+        eventDrop(info) {
+            // seulement les slots bleus (les blocs colorés ne sont pas déplaçables)
+            if (!info.event.classNames.includes('selected-slot')) {
+                info.revert();
+                return;
+            }
+
+            const slot = selectedSlots.find(s => s._id === info.event.id);
+            if (!slot) {
+                info.revert();
+                return;
+            }
+
+            const day   = info.event.start.getDay();
+            const start = info.event.startStr.slice(11, 16);
+            const end   = info.event.endStr.slice(11, 16);
+
+            // 🚦 التحقق حسب إعداد المركب
+            if (!conflictsAllowed()) {
+
+                // conflit avec un bloc occupé (coloré)
+                const conflict = calendar.getEvents().some(ev =>
+                    ev.display === 'background' &&
+                    ev.id !== info.event.id &&
+                    info.event.start < ev.end &&
+                    info.event.end > ev.start
+                );
+
+                if (conflict) {
+                    alert('⛔ هذا التوقيت محجوز من جدول آخر!');
+                    info.revert();
+                    return;
+                }
+
+                // تداخل مع توقيت آخر في نفس الفوج
+                const exists = selectedSlots.some(s =>
+                    s._id !== slot._id &&
+                    s.day_number === day &&
+                    overlapMinutes(s.start, s.end, start, end)
+                );
+
+                if (exists) {
+                    alert('⛔ هذا التوقيت يتداخل مع توقيت موجود بالفعل في هذا الفوج');
+                    info.revert();
+                    return;
+                }
+            }
+
+            slot.day_number = day;
+            slot.start = start;
+            slot.end = end;
+            updateHiddenField();
         }
     });
 
-    // رسم فترات هذا الجدول (زرقاء)
+    // رسم فترات هذا الجدول (زرقاء) — داخل الأسبوع الثابت
     selectedSlots.forEach(slot => {
-        const baseDate = new Date();
-        let daysDiff = slot.day_number - baseDate.getDay();
-        if (daysDiff <= 0) daysDiff += 7;
-        baseDate.setDate(baseDate.getDate() + daysDiff);
+        const dayDate = new Date(weekStart);
+        dayDate.setDate(weekStart.getDate() + slot.day_number);
 
-        const dayStr = baseDate.toISOString().slice(0, 10);
+        const dayStr = dayDate.getFullYear() + '-' +
+            String(dayDate.getMonth() + 1).padStart(2, '0') + '-' +
+            String(dayDate.getDate()).padStart(2, '0');
+
         calendar.addEvent({
+            id: slot._id,
             start: dayStr + 'T' + slot.start + ':00',
             end: dayStr + 'T' + slot.end + ':00',
             classNames: ['selected-slot'],
@@ -529,29 +654,28 @@ label.style.textShadow = 'none';   // اختياري
         });
     });
 
-    // تحميل الأماكن المحجوزة من جداول أخرى (حمراء)
+    // تحميل الأماكن المحجوزة من كل النشاطات (ملوّنة)
     function loadOccupiedSlots() {
         const complexId = document.getElementById('complex').value;
-        const activityId = document.getElementById('activity').value;
 
-        if (!complexId || !activityId) {
-            calendar.getEvents().forEach(ev => {
-                if (ev.display === 'background') ev.remove();
-            });
-            return;
-        }
+        refreshConflictNotice();
 
         calendar.getEvents().forEach(ev => {
             if (ev.display === 'background') ev.remove();
         });
 
-        fetch(`{{ route('admin.schedules.occupied') }}?complex_id=${complexId}&activity_id=${activityId}&exclude_schedule={{ $schedule->id }}`)
+        if (!complexId) {
+            return;
+        }
+
+        fetch(`{{ route('admin.schedules.occupied') }}?complex_id=${complexId}&exclude_schedule={{ $schedule->id }}`)
             .then(res => res.json())
             .then(events => {
                 events.forEach(ev => {
                     calendar.addEvent({
                         ...ev,
                         display: 'background',
+                        editable: false,
                         classNames: ['fc-bg-event']
                     });
                 });
@@ -565,6 +689,13 @@ label.style.textShadow = 'none';   // اختياري
     loadOccupiedSlots();
 
     calendar.render();
+});
+
+document.getElementById('scheduleForm').addEventListener('submit', function (e) {
+    if (selectedSlots.length === 0) {
+        e.preventDefault();
+        alert('❌ اختر توقيتاً واحداً على الأقل من التقويم قبل الحفظ');
+    }
 });
 
 // تحديث complex_activity_id

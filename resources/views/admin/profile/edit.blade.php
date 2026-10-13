@@ -41,7 +41,11 @@
             💾 حفظ التعديلات
         </button>
 
-        <a href="{{ route('admin.dashboard') }}" class="btn btn-secondary px-4">
+        <a href="{{ match(auth()->user()->type) {
+            'financier' => route('reservations.index'),
+            'verify_qr' => route('tickets.verify-qr'),
+            default     => route('admin.dashboard'),
+        } }}" class="btn btn-secondary px-4">
             رجوع
         </a>
     </form>

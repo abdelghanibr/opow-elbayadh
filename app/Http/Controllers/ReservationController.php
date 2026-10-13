@@ -18,7 +18,6 @@ use App\Models\ComplexActivity;
 use App\Models\Schedule;
 
 use App\Models\PricingPlan;
-use App\Models\PoolClosure;
 use App\Models\ReservationCredit;
 use Carbon\CarbonPeriod;
 
@@ -52,6 +51,19 @@ class ReservationController extends Controller
 
 public function togglePayment(Reservation $reservation)
 {
+    // 🔒 Réservé à l'admin et au financier
+    if (!in_array(auth()->user()->type, ['admin', 'financier'])) {
+        abort(403, 'غير مصرح لك');
+    }
+
+    // 🔒 Le financier lié à un complexe ne peut traiter que les réservations de son complexe
+    if (auth()->user()->type !== 'admin'
+        && !empty(auth()->user()->complex_id)
+        && $reservation->complexActivity
+        && $reservation->complexActivity->complex_id != auth()->user()->complex_id) {
+        abort(403, 'غير مصرح لك');
+    }
+
     // Force toggle
     if ($reservation->payment_status == 'paid') {
         $reservation->payment_status = 'pending';
@@ -173,7 +185,7 @@ $seasons = Season::where(function ($query) use ($today, $limitDate) {
 
    
     // 🧑‍💼 مستخدم عادي → حجوزاته فقط
-if ($user->type != 'admin') {
+if (!in_array($user->type, ['admin', 'financier'])) {
 
     $query->where('user_id', $user->id);
 
@@ -204,6 +216,11 @@ if ($user->type != 'admin') {
 
         $reservations = $query->get();
 
+        // 📊 إحصائيات مالية للأدمن / المالي
+        $paidCount       = $reservations->where('payment_status', 'paid')->count();
+        $pendingCount    = $reservations->where('payment_status', '!=', 'paid')->count();
+        $totalPaidAmount = $reservations->where('payment_status', 'paid')->sum('total_price');
+
  $schedules = Schedule::whereHas('complexActivity', function ($q) use ($user) {
         $q->where('complex_id', $user->complex_id);
     })
@@ -220,12 +237,20 @@ if ($user->type != 'admin') {
             'reservations',
             'activities',
             'seasons',
-            'complexes','schedules'
+            'complexes','schedules',
+            'paidCount',
+            'pendingCount',
+            'totalPaidAmount'
         ));
     }
 
     // 🟢 مدير عام → عرض كل المجمعات
     $reservations = $query->get();
+
+    // 📊 إحصائيات مالية للأدمن / المالي
+    $paidCount       = $reservations->where('payment_status', 'paid')->count();
+    $pendingCount    = $reservations->where('payment_status', '!=', 'paid')->count();
+    $totalPaidAmount = $reservations->where('payment_status', 'paid')->sum('total_price');
 
     $complexes  = Complex::orderBy('nom')->get();
     $activities = Activity::orderBy('title')->get();
@@ -238,7 +263,10 @@ if ($user->type != 'admin') {
         'reservations',
         'activities',
         'seasons',
-        'complexes' ,'schedules'
+        'complexes' ,'schedules',
+        'paidCount',
+        'pendingCount',
+        'totalPaidAmount'
     ));
 }
 
@@ -1608,6 +1636,11 @@ private function calculateProratedFirstMonth(Carbon $startDate, float $monthlyPr
 
     public function destroy(Reservation $reservation)
 {
+    // 🚫 المالي ومدقق QR لا يحق لهما حذف الحجوزات
+    if (in_array(auth()->user()->type, ['financier', 'verify_qr'])) {
+        abort(403, 'غير مصرح لك');
+    }
+
     $reservation->delete();
 
     return redirect()->back()->with('success', 'تم حذف الحجز بنجاح');

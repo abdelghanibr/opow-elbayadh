@@ -22,7 +22,7 @@
             <label>البريد الإلكتروني</label>
             <input type="email" name="email" class="form-control" required>
 
-            <label class="mt-3">كلمة المرور</label>
+            <label class="mt-3">البيص</label>
             <input type="password" name="password" class="form-control" required>
 
             {{-- reCAPTCHA --}}

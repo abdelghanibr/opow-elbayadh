@@ -400,6 +400,28 @@ body{
             </a>
         </div>
 
+        {{-- 🪪 بطاقات الأشخاص --}}
+        <div class="club-players-card">
+            <div class="card-header">
+                <div class="icon-circle">🪪</div>
+                <div>
+                    <h5>بطاقات اللاعبين</h5>
+                    <p>عرض وطباعة البطاقات الخاصة بكل شخص</p>
+                </div>
+            </div>
+
+            <div class="card-stats">
+                <div class="stat">
+                    <div class="number">{{ $playersCount }}</div>
+                    <div class="label">بطاقات</div>
+                </div>
+            </div>
+
+            <a href="{{ route('entreprise.cards') }}" class="btn-manage">
+                🪪 طباعة كل البطاقات
+            </a>
+        </div>
+
     </div>
 
     {{-- ===== 📁 Dossier Entreprise ===== --}}
@@ -415,7 +437,7 @@ body{
    @if($club)
 
     @php
-        $attachments = json_decode($club->attachments ?? '[]', true);
+        $attachments = $club->attachments;
         $hasFiles = is_array($attachments) && count($attachments) > 0;
           $hasNote  = !empty($club->note_admin);
     @endphp
@@ -504,7 +526,7 @@ body{
 {{-- ================= 📄 تحميل النماذج ================= --}}
 <div class="club-card mt-4">
     <div class="club-header">
-        📄 النماذج الرسمية (دفتر الشروط)
+        📄 النماذج الرسمية (الإتفاقية)
     </div>
 
     <div class="p-4">
@@ -513,7 +535,7 @@ body{
             <div class="col-md-4">
                 <div class="download-card">
                     <i class="bi bi-file-earmark-text"></i>
-                    <h6 class="fw-bold mt-2">دفتر الشروط</h6>
+                    <h6 class="fw-bold mt-2">الإتفاقية</h6>
                     <a href="{{ asset('docs/daftar_chorout.pdf') }}"
                        class="btn btn-club-outline btn-sm mt-2"
                        download>

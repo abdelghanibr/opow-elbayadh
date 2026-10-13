@@ -173,6 +173,18 @@
             </a>
         </div>
 
+        {{-- بطاقات اللاعبين --}}
+        <div class="col-md-3">
+            <a href="{{ route('admin.cards') }}" class="dash-card text-decoration-none" target="_blank">
+                <div class="dash-icon">🪪</div>
+                <div class="dash-title">بطاقات اللاعبين</div>
+                <p class="dash-desc">
+                    طباعة بطاقات منخرطي هذا المجمع (فرد / نادٍ / مؤسسة) فقط.
+                </p>
+                <div class="count-box">🖨️ طباعة البطاقات</div>
+            </a>
+        </div>
+
         {{-- التخصصات الرياضية --}}
         <div class="col-md-3">
             <a href="{{ route('admin.activities.index') }}" class="dash-card text-decoration-none">
@@ -269,30 +281,6 @@
             </a>
         </div>
 
-        {{-- التحقق من QR التذكرة --}}
-        <div class="col-md-3">
-            <a href="{{ route('tickets.verify-qr') }}" class="dash-card text-decoration-none">
-                <div class="dash-icon">📷</div>
-                <div class="dash-title">التحقق من QR</div>
-                <p class="dash-desc">
-                    مسح أو إدخال رمز QR للتذكرة للتحقق من صحة الدفع والتذكرة.
-                </p>
-                <div class="count-box">مسح QR</div>
-            </a>
-        </div>
-
-        {{-- توقيف المنشأة --}}
-        <div class="col-md-3">
-            <a href="{{ route('admin.pool-closures.index') }}" class="dash-card text-decoration-none">
-                <div class="dash-icon">⚠️</div>
-                <div class="dash-title">توقيف المنشأة</div>
-                <p class="dash-desc">
-                    تسجيل أعطال المسبح أو فترات التوقف وعرض الحجوزات المتأثرة وتوليد التعويضات.
-                </p>
-                <div class="count-box">إدارة الأعطال</div>
-            </a>
-        </div>
-        
         {{-- تأمين المنخرطين --}}
 <div class="col-md-3">
     <a href="{{ route('admin.assurances.index') }}" class="dash-card text-decoration-none">

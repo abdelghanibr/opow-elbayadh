@@ -42,17 +42,8 @@ public function showRegister(Request $request)
     }
 
 
-    // كلمات Captcha بالفرنسية
-    $words = ["ordinateur", "sport", "complexe", "terrain", "piscine", "gymnase"];
-    shuffle($words);
-
-    $correctWord = $words[0]; // نختار كلمة واحدة فقط
-
-    // حفظ الكلمة في الجلسة
-    session(['captcha_word' => $correctWord]);
-
     return view('auth.club.register', compact(
-        'complexes', 'selectedComplex', 'complexId', 'correctWord'
+        'complexes', 'selectedComplex', 'complexId'
     ));
 }
 
@@ -74,10 +65,27 @@ public function showRegister(Request $request)
      
             'attachments.required' => 'يرجى إرفاق ملفات الاعتماد',
         ]);
-if (trim(strtolower($request->captcha_word)) !== strtolower(session('captcha_word'))) {
-    return back()->withErrors([
-        'captcha_word' => "❌ التحقق غير صحيح، يرجى إعادة المحاولة."
-    ])->withInput();
+if (!app()->environment('local')) {
+    $request->validate([
+        'g-recaptcha-response' => 'required',
+    ], [
+        'g-recaptcha-response.required' => '⚠️ يرجى تأكيد أنك لست روبوتًا',
+    ]);
+
+    $captcha = Http::asForm()->post(
+        'https://www.google.com/recaptcha/api/siteverify',
+        [
+            'secret'   => env('RECAPTCHA_SECRET_KEY'),
+            'response' => $request->input('g-recaptcha-response'),
+            'remoteip' => $request->ip(),
+        ]
+    );
+
+    if (!($captcha->json()['success'] ?? false)) {
+        return back()
+            ->withErrors(['g-recaptcha-response' => '❌ رمز CAPTCHA غير صالح'])
+            ->withInput();
+    }
 }
 
         DB::beginTransaction();
@@ -121,7 +129,8 @@ if (trim(strtolower($request->captcha_word)) !== strtolower(session('captcha_wor
                 'numero_agrement' => $request->numero_agrement,
                 'date_expiration' => $request->date_expiration,
                 'complex_id'      => $request->complex_id,
-                'attachments'     => json_encode($savedFiles, JSON_UNESCAPED_UNICODE),
+                // cast 'array' في Club يتولى الترميز — لا تستعمل json_encode هنا
+                'attachments'     => $savedFiles,
                 'entity_type'     => 'club',
             ]);
 

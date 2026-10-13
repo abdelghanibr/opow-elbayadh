@@ -32,17 +32,8 @@ public function showRegister(Request $request)
 
     $complexes = Complex::orderBy('nom')->get();
 
-    // كلمات Captcha بالفرنسية
-    $words = ["ordinateur", "sport", "complexe", "terrain", "piscine", "gymnase"];
-    shuffle($words);
-
-    $correctWord = $words[0]; // نختار كلمة واحدة فقط
-
-    // حفظ الكلمة في الجلسة
-    session(['captcha_word' => $correctWord]);
-
     return view('auth.company.register', compact(
-        'complexes', 'selectedComplex', 'complexId', 'correctWord'
+        'complexes', 'selectedComplex', 'complexId'
     ));
 }
 
@@ -61,20 +52,40 @@ public function showRegister(Request $request)
             'phone'        => ['required', 'string', 'regex:/^0[0-9]{8,9}$/'],
             'password'     => ['required', 'confirmed', 'min:8', 'regex:/[a-z]/', 'regex:/[A-Z]/', 'regex:/[0-9]/', 'regex:/[^a-zA-Z0-9]/'],
             'complex_id'   => 'required|exists:complexes,id',
+            'company_type' => 'required|in:public,privee',
             'attachments'  => 'nullable|array',
             'attachments.*'=> 'mimes:pdf,jpg,jpeg,png|max:4096'
         ], [
             'complex_id.required' => 'يرجى اختيار المجمع الرياضي التابع للمؤسسة.',
             'phone.required'      => 'رقم هاتف المسؤول مطلوب.',
             'phone.regex'         => 'أدخل رقم هاتف جزائري صحيح (مثال: 0550123456).',
+            'company_type.required' => 'يرجى اختيار نوع المؤسسة.',
+            'company_type.in'     => 'نوع المؤسسة غير صحيح.',
             'password.min'        => 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',
             'password.regex'      => 'كلمة المرور يجب أن تحتوي على حرف كبير وحرف صغير ورقم ورمز خاص.',
             'password.confirmed'  => 'كلمتا المرور غير متطابقتين.',
         ]);
-if (trim(strtolower($request->captcha_word)) !== strtolower(session('captcha_word'))) {
-    return back()->withErrors([
-        'captcha_word' => "❌ التحقق غير صحيح، يرجى إعادة المحاولة."
-    ])->withInput();
+if (!app()->environment('local')) {
+    $request->validate([
+        'g-recaptcha-response' => 'required',
+    ], [
+        'g-recaptcha-response.required' => '⚠️ يرجى تأكيد أنك لست روبوتًا',
+    ]);
+
+    $captcha = Http::asForm()->post(
+        'https://www.google.com/recaptcha/api/siteverify',
+        [
+            'secret'   => env('RECAPTCHA_SECRET_KEY'),
+            'response' => $request->input('g-recaptcha-response'),
+            'remoteip' => $request->ip(),
+        ]
+    );
+
+    if (!($captcha->json()['success'] ?? false)) {
+        return back()
+            ->withErrors(['g-recaptcha-response' => '❌ رمز CAPTCHA غير صالح'])
+            ->withInput();
+    }
 }
         DB::beginTransaction();
         $savedFiles = [];
@@ -118,6 +129,7 @@ if (trim(strtolower($request->captcha_word)) !== strtolower(session('captcha_wor
                 'user_id'         => $user->id,
                 'nom'             => $request->name,
                 'entity_type'     => 'company',
+                'company_type'    => $request->company_type,
                 'complex_id'      => $request->complex_id,
                 'attachments'     => $savedFiles ? json_encode($savedFiles, JSON_UNESCAPED_UNICODE) : null,
             ]);

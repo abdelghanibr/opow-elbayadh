@@ -26,6 +26,10 @@
                 <div class="form-error text-danger small">{{ $message }}</div>
             @enderror
         </div>
+@if($isChild ?? false)
+    <input type="hidden" name="tuteur_fullname"
+           value="{{ old('tuteur_fullname', $person->tuteur_fullname ?? (($parentPerson->firstname ?? '') . ' ' . ($parentPerson->lastname ?? ''))) }}">
+@else
 <div class="col-md-6 mb-3">
     <label class="form-label">اسم الأب</label>
     <input type="text"
@@ -37,6 +41,7 @@
         <div class="form-error text-danger small">{{ $message }}</div>
     @enderror
 </div>
+@endif
 
         <!-- تاريخ الميلاد -->
         <div class="col-md-6 mb-3">

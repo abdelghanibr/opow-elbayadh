@@ -37,6 +37,8 @@
                         <td data-label="النوع">
                             @if($a->type === 'verify_qr')
                                 <span class="badge rounded-pill type-badge verify-badge">📷 مدقق QR</span>
+                            @elseif($a->type === 'financier')
+                                <span class="badge rounded-pill type-badge financier-badge">💰 مالي (حالة مالية)</span>
                             @else
                                 <span class="badge rounded-pill type-badge admin-badge">👮 مسؤول كامل</span>
                             @endif
@@ -154,6 +156,12 @@
         background: rgba(16, 185, 129, 0.12);
         color: #059669;
         border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+
+    .financier-badge {
+        background: rgba(245, 158, 11, 0.12);
+        color: #b45309;
+        border: 1px solid rgba(245, 158, 11, 0.4);
     }
 
     .complex-badge {

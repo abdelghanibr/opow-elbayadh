@@ -26,9 +26,12 @@
             @endif
 
             {{-- Form --}}
-            <form action="{{ route('entreprise.persons.store') }}"
+            <form id="personForm"
+                  action="{{ route('entreprise.persons.store') }}"
                   method="POST"
-                  enctype="multipart/form-data">
+                  enctype="multipart/form-data"
+                  data-check-url="{{ route('entreprise.persons.check-duplicate') }}"
+                  data-person-id="">
                 @csrf
 
                 <div class="row g-4">
@@ -92,8 +95,7 @@
                                name="photo"
                                id="photoInput"
                                class="form-control form-control-lg rounded-3"
-                               accept="image/jpeg,image/png"
-                               required>
+                               accept="image/jpeg,image/png">
 
                         {{-- Preview --}}
                         <div class="text-center mt-3">
@@ -178,5 +180,87 @@ document.getElementById('photoInput').addEventListener('change', function (e) {
     };
     reader.readAsDataURL(file);
 });
+
+(function () {
+    const form = document.getElementById('personForm');
+    if (!form) return;
+
+    const fnInput = form.querySelector('[name="firstname"]');
+    const lnInput = form.querySelector('[name="lastname"]');
+    const bdInput = form.querySelector('[name="birth_date"]');
+    if (!fnInput || !lnInput || !bdInput) return;
+
+    let bypass = false;
+    let dupBox = null;
+
+    function clearDup() {
+        if (dupBox && dupBox.parentNode) {
+            dupBox.parentNode.removeChild(dupBox);
+            dupBox = null;
+        }
+        [fnInput, lnInput, bdInput].forEach(function (el) {
+            el.classList.remove('is-invalid');
+        });
+    }
+
+    function showDup(message) {
+        clearDup();
+        dupBox = document.createElement('div');
+        dupBox.className = 'alert alert-danger mt-3';
+        dupBox.textContent = message;
+        form.querySelector('.text-center.mt-5').before(dupBox);
+        dupBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    [fnInput, lnInput, bdInput].forEach(function (el) {
+        el.addEventListener('input', clearDup);
+        el.addEventListener('change', clearDup);
+    });
+
+    form.addEventListener('submit', function (e) {
+        if (bypass) return;
+
+        const firstname = fnInput.value.trim();
+        const lastname  = lnInput.value.trim();
+        const birthDate = bdInput.value.trim();
+
+        if (!firstname || !lastname || !birthDate) {
+            return;
+        }
+
+        e.preventDefault();
+
+        const url = new URL(form.dataset.checkUrl, window.location.origin);
+        url.searchParams.set('firstname', firstname);
+        url.searchParams.set('lastname', lastname);
+        url.searchParams.set('birth_date', birthDate);
+        if (form.dataset.personId) {
+            url.searchParams.set('exclude_id', form.dataset.personId);
+        }
+
+        fetch(url.toString(), { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data && data.exists) {
+                    showDup('⚠️ الشخص موجود مسبقاً بنفس الاسم واللقب وتاريخ الميلاد.');
+                    return;
+                }
+                bypass = true;
+                if (form.requestSubmit) {
+                    form.requestSubmit();
+                } else {
+                    form.submit();
+                }
+            })
+            .catch(function () {
+                bypass = true;
+                if (form.requestSubmit) {
+                    form.requestSubmit();
+                } else {
+                    form.submit();
+                }
+            });
+    });
+})();
 </script>
 @endsection

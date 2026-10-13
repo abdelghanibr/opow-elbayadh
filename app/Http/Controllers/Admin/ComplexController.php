@@ -39,6 +39,7 @@ class ComplexController extends Controller
             'capacite_mi'  => 'nullable|numeric',
              'capacite_ma'  => 'nullable|numeric',
                   'type'  => 'nullable|string|max:255',
+            'allow_time_conflict' => 'nullable|boolean',
             'image'     => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             
         ]);
@@ -70,6 +71,7 @@ class ComplexController extends Controller
             'phone'     => $request->phone,
             'capacite_mi'  => $request->capacite_mi,
              'capacite_ma'  => $request->capacite_ma,
+            'allow_time_conflict' => $request->boolean('allow_time_conflict'),
             'image'     => $imagePath,
               'type'     => $request->type,
                 'user_id'      => Auth::id(), // ✅ هنا الحفظ
@@ -100,6 +102,7 @@ class ComplexController extends Controller
         'capacite_mi'  => 'nullable|numeric',
            'capacite_ma'  => 'nullable|numeric',
               'type'  => 'nullable|string|max:255',
+        'allow_time_conflict' => 'nullable|boolean',
         'image'     => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
     ]);
 
@@ -143,6 +146,7 @@ class ComplexController extends Controller
         'capacite_mi'  => $request->capacite_mi,
              'capacite_ma'  => $request->capacite_ma,
            'type'     => $request->type,
+        'allow_time_conflict' => $request->boolean('allow_time_conflict'),
         'image'     => $complex->image, // ⭐ المهم
       'user_id'      => Auth::id(),
     ]);

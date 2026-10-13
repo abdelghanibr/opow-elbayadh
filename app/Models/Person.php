@@ -91,4 +91,17 @@ public function age()
 {
     return $this->hasOne(\App\Models\Dossier::class, 'person_id');
 }
+
+/**
+ * Derniere reservation du proprietaire du compte (reservations.user_id).
+ *
+ * La table reservations porte user_id (et non person_id) : la quasi-totalite
+ * des lignes n'a jamais de person_id, d'ou l'importance de cette cle.
+ * Pour les membres de club / entreprise, plusieurs personnes partagent le
+ * meme user_id : la reservation du compte leur est alors attribuee a chacune.
+ */
+public function lastReservation()
+{
+    return $this->hasOne(Reservation::class, 'user_id', 'user_id')->latestOfMany();
+}
 }

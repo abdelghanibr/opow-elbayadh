@@ -4,10 +4,13 @@
 
 @php
     $person  = $dossier->person ?? null;
-    $user    = $person?->user;
 
+    // صاحب الحساب: المستخدم المرتبط بالشخص أو بحساب الولي بالنسبة للقاصرين
+    $user    = $person?->ownerUser() ?? $dossier->user ?? auth()->user();
 
-    $complex = $user?->complex;
+    // المركب ديناميكي حسب complex_id الخاص بالمستخدم
+    $complex = $user?->complex
+        ?? $person?->complex;
 
     // Activité : adapte seulement la source selon ta vraie relation
     $activity = $dossier->activity ?? $person?->activity ?? null;
@@ -17,10 +20,7 @@
         ?? $activity?->title
         ?? 'السباحة الترفيهية';
 
-    $complexLabel = $complex?->full_name
-        ?? $complex?->name_ar
-        ?? $complex?->name
-        ?? $complex?->nom
+    $complexLabel = $complex?->nom
         ?? 'المسبح النصف أولمبي ببلدية الشهيد محمود مغلاوي';
  
  

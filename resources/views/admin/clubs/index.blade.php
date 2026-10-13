@@ -53,7 +53,7 @@
             @foreach($clubs as $c)
 
                 @php
-                    $files = json_decode($c->attachments, true) ?? [];
+                    $files = $c->attachments;
 
                     $labels = [
                         'agreement'              => '🏛️ اعتماد النادي',
@@ -62,7 +62,7 @@
                         'coaches_certificates'   => '🎓 شهادات المدربين',
                         'federation_affiliation' => '🏅 شهادة الانخراط في الرابطة',
                         'insurance_certificate'  => '🛡️ شهادة التأمين',
-                        'rules_book'             => '📘 دفتر الشروط',
+                        'rules_book'             => '📘 الإتفاقية',
                         'minutes_meeting'        => '📝 محضر الجمعية العامة',
                         'exploitation_request'   => '📄 طلب الاستغلال',
                     ];

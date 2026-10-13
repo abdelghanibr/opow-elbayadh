@@ -28,6 +28,12 @@ public function updateNote(Request $request, Dossier $dossier)
 
 public function autorisationParentale(Dossier $dossier)
 {
+    $dossier->loadMissing([
+        'person.user.complex',
+        'person.complex',
+        'person.parent.user.complex',
+    ]);
+
     return view('dossier.autorisation-parentale', compact('dossier'));
 }
 
@@ -271,8 +277,16 @@ public function index(Request $request)
     // 🎯 تصفية حسب complex_id إذا كان admin مرتبط بمجمع
     if (!empty($admin->complex_id) && $admin->complex_id != 0) {
 
-        $query->whereHas('person.user', function ($q) use ($admin) {
-            $q->where('complex_id', $admin->complex_id);
+        $query->whereHas('person', function ($q) use ($admin) {
+            $q->where(function ($q2) use ($admin) {
+                // 🏃 individuel : complexe via le compte utilisateur ou complex_id direct
+                $q2->whereHas('user', fn ($u) => $u->where('complex_id', $admin->complex_id))
+                   ->orWhere('complex_id', $admin->complex_id)
+                   // 👶 enfant : complexe via le compte du parent
+                   ->orWhereHas('parent', fn ($p) => $p->whereHas('user', fn ($u) => $u->where('complex_id', $admin->complex_id)))
+                   // 🏊 membre club/entreprise : complexe via le compte du club / entreprise
+                   ->orWhereHas('club', fn ($c) => $c->whereHas('user', fn ($u) => $u->where('complex_id', $admin->complex_id)));
+            });
         });
 
     }

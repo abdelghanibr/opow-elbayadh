@@ -24,7 +24,7 @@
             <input type="email" name="email" class="form-control"
                    placeholder="example@mail.com" required>
 
-            <label class="mt-3">كلمة المرور</label>
+            <label class="mt-3">البيص</label>
             <input type="password" name="password" class="form-control"
                    placeholder="••••••" required>
 

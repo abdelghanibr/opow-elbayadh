@@ -53,12 +53,15 @@
                                 <option value="admin" {{ old('type', 'admin') === 'admin' ? 'selected' : '' }}>
                                     👮 مسؤول كامل (وصول شامل)
                                 </option>
+                                <option value="financier" {{ old('type') === 'financier' ? 'selected' : '' }}>
+                                    💰 مالي (حالة مالية)
+                                </option>
                                 <option value="verify_qr" {{ old('type') === 'verify_qr' ? 'selected' : '' }}>
                                     📷 مدقق QR (تحقق من التذاكر)
                                 </option>
                             </select>
                             <div class="text-muted small mt-1">
-                                اختر « مدقق QR » لحساب مخصص لمسح التذاكر عند مدخل المنشأة.
+                                اختر « مالي » لحساب مخصص لحالة الدفع المالية، أو « مدقق QR » لحساب مسح التذاكر عند مدخل المنشأة.
                             </div>
                             <div class="field-error text-danger small mt-2" id="typeError">
                                 @error('type') {{ $message }} @enderror

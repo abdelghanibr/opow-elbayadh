@@ -46,17 +46,8 @@ public function showRegister(Request $request)
     }
 
 
-    // كلمات Captcha بالفرنسية
-    $words = ["ordinateur", "sport", "complexe", "terrain", "piscine", "gymnase"];
-    shuffle($words);
-
-    $correctWord = $words[0]; // نختار كلمة واحدة فقط
-
-    // حفظ الكلمة في الجلسة
-    session(['captcha_word' => $correctWord]);
-
     return view('auth.person.register', compact(
-        'complexes', 'selectedComplex', 'complexId', 'correctWord','activities'
+        'complexes', 'selectedComplex', 'complexId', 'activities'
     ));
 }
 
@@ -88,10 +79,27 @@ public function showRegister(Request $request)
             'birth_date.required'     => '⚠ تاريخ الميلاد مطلوب.',
             'birth_date.before'       => '⚠ يجب أن يكون العمر 3 سنوات على الأقل.',
         ]);
-if (trim(strtolower($request->captcha_word)) !== strtolower(session('captcha_word'))) {
-    return back()->withErrors([
-        'captcha_word' => "❌ التحقق غير صحيح، يرجى إعادة المحاولة."
-    ])->withInput();
+if (!app()->environment('local')) {
+    $request->validate([
+        'g-recaptcha-response' => 'required',
+    ], [
+        'g-recaptcha-response.required' => '⚠️ يرجى تأكيد أنك لست روبوتًا',
+    ]);
+
+    $captcha = Http::asForm()->post(
+        'https://www.google.com/recaptcha/api/siteverify',
+        [
+            'secret'   => env('RECAPTCHA_SECRET_KEY'),
+            'response' => $request->input('g-recaptcha-response'),
+            'remoteip' => $request->ip(),
+        ]
+    );
+
+    if (!($captcha->json()['success'] ?? false)) {
+        return back()
+            ->withErrors(['g-recaptcha-response' => '❌ رمز CAPTCHA غير صالح'])
+            ->withInput();
+    }
 }
 $messages = [
     'nin.required' => '❌ رقم التعريف الوطني مطلوب.',

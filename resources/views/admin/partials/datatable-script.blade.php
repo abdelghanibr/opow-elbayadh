@@ -52,31 +52,38 @@ $(document).ready(function () {
 
     /* ================== OPTIONAL COLUMN FILTERS ================== */
 
-    // فلتر الحالة (العمود 4)
+    @php
+        $colEtat    = $colEtat    ?? 4;
+        $colOwner   = $colOwner   ?? 1;
+        $colAccount = $colAccount ?? 2;
+        $colAge     = $colAge     ?? 3;
+    @endphp
+
+    // فلتر الحالة (العمود {{ $colEtat }})
     if ($('#filterEtat').length) {
         $('#filterEtat').on('change', function () {
-            table.column(4).search(this.value).draw();
+            table.column({{ $colEtat }}).search(this.value).draw();
         });
     }
 
-    // فلتر صاحب الملف (العمود 1)
+    // فلتر صاحب الملف (العمود {{ $colOwner }})
     if ($('#filterOwner').length) {
         $('#filterOwner').on('keyup', function () {
-            table.column(1).search(this.value).draw();
+            table.column({{ $colOwner }}).search(this.value).draw();
         });
     }
 
-    // فلتر الحساب (العمود 2)
+    // فلتر الحساب (العمود {{ $colAccount }})
     if ($('#filterAccount').length) {
         $('#filterAccount').on('keyup', function () {
-            table.column(2).search(this.value).draw();
+            table.column({{ $colAccount }}).search(this.value).draw();
         });
     }
 
-    // فلتر العمر (العمود 3)
+    // فلتر العمر (العمود {{ $colAge }})
     if ($('#filterAge').length) {
         $('#filterAge').on('keyup change', function () {
-            table.column(3).search(this.value).draw();
+            table.column({{ $colAge }}).search(this.value).draw();
         });
     }
 

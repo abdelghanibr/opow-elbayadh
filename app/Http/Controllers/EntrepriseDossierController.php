@@ -51,8 +51,8 @@ public function update(Request $request)
         abort(403, 'لا يوجد ملف مؤسسة مرتبط بهذا الحساب');
     }
 
-    // المرفقات الحالية
-    $attachments = json_decode($club->attachments ?? '{}', true);
+    // المرفقات الحالية — مصفوفة مفهرسة (Club::$attachments)
+    $attachments = $club->attachments;
 
     foreach ($request->files as $key => $file) {
 
@@ -90,7 +90,7 @@ public function update(Request $request)
 
     // تحديث الدوسيي
     $club->update([
-        'attachments' => json_encode($attachments),
+        'attachments' => $attachments,
         'etat'        => 'pending',
     ]);
 

@@ -30,7 +30,8 @@ use App\Http\Controllers\Auth\PersonAuthController;
 
 
 use App\Http\Controllers\PersonController;
-use App\Http\Controllers\ClubController; 
+use App\Http\Controllers\ClubController;
+use App\Http\Controllers\PlayerCardController; 
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\HomeController;
@@ -53,7 +54,7 @@ use App\Http\Controllers\TicketPaymentController;
 
 use App\Http\Controllers\Api\RemotePersonController;
 
-use App\Http\Controllers\PoolClosureController;
+
 
 
 
@@ -152,10 +153,38 @@ Route::get('/tickets/reserve/{id}', [TicketController::class, 'reserve'])
      ->name('tickets.reserve');
 
 Route::get('/tickets/verify-qr', [TicketPaymentController::class, 'showVerifyQR'])
-     ->name('tickets.verify-qr');
+     ->name('tickets.verify-qr')
+     ->middleware(['auth', 'admin']);
 
 Route::post('/tickets/check-qr', [TicketPaymentController::class, 'checkQR'])
-     ->name('ticket.check-qr');
+     ->name('ticket.check-qr')
+     ->middleware(['auth', 'admin']);
+
+Route::post('/tickets/reset-scan', [TicketPaymentController::class, 'resetScan'])
+     ->name('ticket.reset-scan')
+     ->middleware(['auth', 'admin']);
+
+// Ticket self-service purchase flow (select-seat form -> payment -> result)
+Route::post('/tickets/confirm-pay', [TicketPaymentController::class, 'confirmAndPay'])
+     ->name('ticket.confirm.pay');
+
+Route::get('/tickets/pay', [TicketPaymentController::class, 'showTicketPay'])
+     ->name('ticket.pay.show');
+
+Route::post('/tickets/payment/initiate', [TicketPaymentController::class, 'initiatePayment'])
+     ->name('ticket.payment.initiate');
+
+Route::get('/tickets/payment/verify', [TicketPaymentController::class, 'verify'])
+     ->name('ticket.payment.verify');
+
+Route::get('/tickets/result/{id}', [TicketPaymentController::class, 'showResult'])
+     ->name('ticket.show-result');
+
+Route::get('/tickets/print/{id}', [TicketPaymentController::class, 'printTicket'])
+     ->name('ticket.print');
+
+Route::post('/tickets/receipt-email/{id}', [TicketPaymentController::class, 'sendTicketReceiptEmail'])
+     ->name('ticket.receipt.email');
 
   Route::get('/events/{id}', [EventController::class, 'show'])
     ->whereNumber('id')
@@ -267,6 +296,13 @@ Route::post('/person/children', [ProfileController::class, 'storeChild'])->name(
 Route::get('/person/children/{person}/edit', [ProfileController::class, 'editChild'])->name('children.edit');
 Route::get('/person/children/{person}/reserve', [ProfileController::class, 'reserveChild'])->name('children.reserve');
 
+// 🪪 Carte de joueur (person + enfants)
+Route::get('/person/card', [PlayerCardController::class, 'show'])->name('person.card');
+Route::get('/person/children/{person}/card', [PlayerCardController::class, 'showChild'])->name('person.children.card');
+
+// 🔗 Vérification générale d'une carte (sans auth)
+Route::get('/card/verify/{token}', [PlayerCardController::class, 'verify'])->name('card.verify');
+
 Route::get('/dossier/{dossier}/print', 
     [DossierController::class, 'print'])
     ->name('dossier.print');
@@ -296,6 +332,9 @@ Route::get('/dossiers/{id}/autorisation-parentale/download', [DossierController:
 Route::middleware(['auth','club'])->group(function ()
  {
     Route::get('/club/dashboard', [DashboardController::class, 'index'])->name('club.dashboard');
+  
+    Route::get('/club/cards', [PlayerCardController::class, 'cards'])->name('club.cards');
+    Route::get('/club/card/{person}', [PlayerCardController::class, 'memberCard'])->name('club.card');
   
     Route::get('/club/persons/', [PersonController::class, 'index'])
         ->name('club.persons.index');
@@ -340,6 +379,9 @@ Route::middleware(['auth','entreprise'])->group(function () {
     Route::get('/entreprise/dashboard', [DashboardController::class, 'index'])->name('entreprise.dashboard');
     
     
+    Route::get('/entreprise/cards', [PlayerCardController::class, 'cards'])->name('entreprise.cards');
+    Route::get('/entreprise/card/{person}', [PlayerCardController::class, 'memberCard'])->name('entreprise.card');
+    
     Route::get('/entreprise/persons', [PersonController::class, 'index'])
         ->name('entreprise.persons.index');
 
@@ -359,6 +401,16 @@ Route::middleware(['auth','entreprise'])->group(function () {
         
     Route::get('/entreprise/persons/create', [PersonController::class, 'create'])
         ->name('entreprise.persons.create'); 
+
+    // 📥 الاستيراد بالجملة (نموذج Excel)
+    Route::get('/entreprise/persons/import/template', [PersonController::class, 'downloadImportTemplate'])
+        ->name('entreprise.persons.import.template');
+
+    Route::post('/entreprise/persons/import', [PersonController::class, 'import'])
+        ->name('entreprise.persons.import'); 
+
+    Route::get('/entreprise/persons/check-duplicate', [PersonController::class, 'checkDuplicate'])
+        ->name('entreprise.persons.check-duplicate');
         
         
 
@@ -389,32 +441,40 @@ Route::middleware(['auth','admin'])->group(function () {
 
 
 
-Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
-
-    Route::get('/pool-closures', [PoolClosureController::class, 'index'])
-        ->name('pool-closures.index');
-
-    Route::get('/pool-closures/create', [PoolClosureController::class, 'create'])
-        ->name('pool-closures.create');
-
-    Route::post('/pool-closures', [PoolClosureController::class, 'store'])
-        ->name('pool-closures.store');
-
-    Route::get('/pool-closures/{poolClosure}', [PoolClosureController::class, 'show'])
-        ->name('pool-closures.show');
-
-    Route::get('/pool-closures/{poolClosure}/edit', [PoolClosureController::class, 'edit'])
-        ->name('pool-closures.edit');
-
-    Route::put('/pool-closures/{poolClosure}', [PoolClosureController::class, 'update'])
-        ->name('pool-closures.update');
-
-    Route::delete('/pool-closures/{poolClosure}', [PoolClosureController::class, 'destroy'])
-        ->name('pool-closures.destroy');
-
-    Route::post('/pool-closures/{poolClosure}/apply', [PoolClosureController::class, 'apply'])
-        ->name('pool-closures.apply');
-});
+/*
+|--------------------------------------------------------------------------
+| Pool Closures — DESACTIVÉ
+|--------------------------------------------------------------------------
+| App\Http\Controllers\PoolClosureController n'existe pas encore (ni modèle,
+| ni migration, ni vues). Ces routes faisaient échouer `route:list` et
+| `route:cache`. À réactiver quand la fonctionnalité est complète.
+|
+| Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+|     Route::get('/pool-closures', [PoolClosureController::class, 'index'])
+|         ->name('pool-closures.index');
+|
+|     Route::get('/pool-closures/create', [PoolClosureController::class, 'create'])
+|         ->name('pool-closures.create');
+|
+|     Route::post('/pool-closures', [PoolClosureController::class, 'store'])
+|         ->name('pool-closures.store');
+|
+|     Route::get('/pool-closures/{poolClosure}', [PoolClosureController::class, 'show'])
+|         ->name('pool-closures.show');
+|
+|     Route::get('/pool-closures/{poolClosure}/edit', [PoolClosureController::class, 'edit'])
+|         ->name('pool-closures.edit');
+|
+|     Route::put('/pool-closures/{poolClosure}', [PoolClosureController::class, 'update'])
+|         ->name('pool-closures.update');
+|
+|     Route::delete('/pool-closures/{poolClosure}', [PoolClosureController::class, 'destroy'])
+|         ->name('pool-closures.destroy');
+|
+|     Route::post('/pool-closures/{poolClosure}/apply', [PoolClosureController::class, 'apply'])
+|         ->name('pool-closures.apply');
+| });
+*/
 
 
 
@@ -494,6 +554,12 @@ Route::resource('events', EventController::class)->except(['show']);;
 
 
 Route::resource('persons', PersonsController::class);
+
+// 🖨️ بطاقات اللاعبين (الإدارة — كل الأنواع: فرد / نادٍ / مؤسسة)
+Route::get('/admin/cards', [PlayerCardController::class, 'adminCards'])->name('admin.cards');
+Route::get('/admin/cards/print', [PlayerCardController::class, 'adminCardsPrint'])->name('admin.cards.print');
+Route::get('/admin/cards/person/{person}', [PlayerCardController::class, 'adminCard'])->name('admin.card');
+
 Route::resource('activity-categories',ActivityCategoryController::class );
 
 Route::resource('seasons', SeasonController::class);
@@ -559,6 +625,7 @@ Route::delete('/admin/companies/{id}', [ClubController::class, 'destroyCompany']
 // gestion des horaires (schedules)
 Route::get('/admin/schedules', [ScheduleController::class, 'index'])->name('admin.schedules.index');
 Route::get('/admin/schedules/create', [ScheduleController::class, 'create'])->name('admin.schedules.create');
+Route::get('/admin/schedules/{id}/duplicate', [ScheduleController::class, 'duplicate'])->name('admin.schedules.duplicate');
 Route::post('/admin/schedules', [ScheduleController::class, 'store'])->name('admin.schedules.store');
 Route::get('/admin/schedules/{id}/edit', [ScheduleController::class, 'edit'])->name('admin.schedules.edit');
 Route::put('/admin/schedules/{id}', [ScheduleController::class, 'update'])->name('admin.schedules.update');

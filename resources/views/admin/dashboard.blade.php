@@ -930,6 +930,13 @@ body{
         <div class="count-box">{{ $totalAgeRegistrations ?? 0 }}</div>
     </a>
 
+    <a href="{{ route('admin.cards') }}" class="dash-card" target="_blank">
+        <div class="dash-icon">🪪</div>
+        <h6>بطاقات اللاعبين</h6>
+        <p class="dash-desc">طباعة بطاقات منخرطي النوادي والمؤسسات والفئات الفردية.</p>
+        <div class="count-box">🖨️</div>
+    </a>
+
     <a href="{{ route('admin.activities.index') }}" class="dash-card">
         <div class="dash-icon">🏋️‍♂️</div>
         <h6>التخصصات الرياضية</h6>
@@ -1028,21 +1035,7 @@ body{
         <div class="count-box">{{ $noDossierAccountsCount ?? 0 }}</div>
     </a>
 
-    <a href="{{ route('admin.pool-closures.index') }}" class="dash-card danger-card">
-        <div class="dash-icon">⚠️</div>
-        <h6>توقيف المنشأة</h6>
-        <p class="dash-desc">برمجة توقيف مؤقت للمنشآت عند الصيانة أو الطوارئ.</p>
-        <div class="count-box">إدارة</div>
-    </a>
-
-    <a href="{{ route('tickets.verify-qr') }}" class="dash-card">
-        <div class="dash-icon">📷</div>
-        <h6>التحقق من التذاكر</h6>
-        <p class="dash-desc">مسح أو إدخال رمز QR للتذكرة للتحقق من صحة الدفع.</p>
-        <div class="count-box">مسح QR</div>
-    </a>
-
-</div>
+    </div>
             </div>
 
         </main>

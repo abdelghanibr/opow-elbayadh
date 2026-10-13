@@ -112,6 +112,31 @@
                         </select>
                     </div>
 
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">فصيلة الدم</label>
+                        <select name="blood_type"
+                                class="form-select form-select-lg rounded-3">
+                            <option value="">— اختر فصيلة الدم —</option>
+                            @foreach(['A+','A-','B+','B-','AB+','AB-','O+','O-'] as $blood)
+                                <option value="{{ $blood }}"
+                                    {{ old('blood_type', $person->blood_type)==$blood?'selected':'' }}>
+                                    {{ $blood }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('blood_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">العنوان</label>
+                        <input type="text" name="address"
+                               class="form-control form-control-lg rounded-3"
+                               value="{{ old('address', $person->address) }}"
+                               maxlength="255"
+                               placeholder="عنوان السكن">
+                        @error('address')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+
                     <!-- ================= صورة شمسية ================= -->
                     <div class="col-md-6">
                         <label class="form-label fw-bold">📷 الصورة الشمسية</label>
@@ -532,6 +557,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!validateText(document.querySelector('[name="license_number"]'), true, 50)) ok = false;
         if (!validateSelect(document.querySelector('[name="gender"]'))) ok = false;
         if (!validateSelect(document.querySelector('[name="education"]'))) ok = false;
+    if (!validateText(document.querySelector('[name="address"]'), false, 255)) ok = false;
         if (!validatePhoto(document.getElementById('photoInput'))) ok = false;
         if (!validatePDF(document.getElementById('pdfInput'))) ok = false;
 

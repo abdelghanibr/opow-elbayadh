@@ -122,7 +122,7 @@ class ClubController extends Controller
 {
     $club = Auth::user()->club;
 
-    $attachments = $club->attachments ?? [];
+    $attachments = $club->attachments;
 
     $fields = [
         'club_accreditation',      // اعتماد النادي
@@ -131,7 +131,7 @@ class ClubController extends Controller
         'coaches_certificates',    // شهادات المدربين
         'federation_membership',   // شهادة الانخراط
         'insurance_certificate',   // شهادة التأمين
-        'terms_register',          // دفتر الشروط
+        'terms_register',          // الإتفاقية
         'agreement_register',      // دفتر الاتفاقية
         'exploitation_request',    // طلب الاستغلال
     ];
@@ -147,6 +147,7 @@ class ClubController extends Controller
     }
 
     $club->update([
+        // cast 'array' في Club يتولى الترميز — لا تستعمل json_encode هنا
         'attachments' => $attachments,
     ]);
 

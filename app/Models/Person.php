@@ -81,6 +81,31 @@ class Person extends Model
     {
         return $this->belongsTo(AgeCategory::class);
     }
+
+    /**
+     * Si la categorie d'age est vide, la deduire de la date de naissance
+     * (min_age <= age <= max_age) et l'enregistrer.
+     */
+    public function ensureAgeCategory(): self
+    {
+        if ($this->age_category_id || !$this->birth_date) {
+            return $this;
+        }
+
+        $age = \Carbon\Carbon::parse($this->birth_date)->age;
+        $cat = AgeCategory::where('min_age', '<=', $age)
+            ->where('max_age', '>=', $age)
+            ->orderByDesc('min_age')
+            ->first();
+
+        if ($cat) {
+            $this->age_category_id = $cat->id;
+            $this->save();
+            $this->load('ageCategory');
+        }
+
+        return $this;
+    }
 public function age()
 {
     return $this->hasOne(Person::class, 'user_id', 'id');

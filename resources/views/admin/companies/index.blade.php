@@ -139,6 +139,7 @@
 
                     {{-- 🗑️ حذف نهائي --}}
                     <td style="white-space: nowrap;">
+                        @include('admin.partials.impersonate-button', ['userId' => $c->user_id])
                         <button class="btn btn-outline-danger btn-sm"
                                 data-bs-toggle="modal"
                                 data-bs-target="#deleteCompanyModal{{ $c->id }}">

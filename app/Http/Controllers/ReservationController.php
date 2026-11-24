@@ -19,6 +19,7 @@ use App\Models\Schedule;
 
 use App\Models\PricingPlan;
 use App\Models\ReservationCredit;
+use App\Services\ReservationCreditService;
 use Carbon\CarbonPeriod;
 
 class ReservationController extends Controller
@@ -189,21 +190,26 @@ if (!in_array($user->type, ['admin', 'financier'])) {
 
     $query->where('user_id', $user->id);
 
-    $reservations = $query->get();
+    // Mois le plus récent d'abord ; à mois égal : demande la plus récente, puis id décroissant (ordre stable)
+    $reservations = $query
+        ->orderByDesc('start_date')
+        ->orderByDesc('created_at')
+        ->orderByDesc('id')
+        ->get();
 
     $activities = Activity::orderBy('title')->get();
 
     // الرصيد التعويضي المتاح للمستخدم
-    $availableCredit = ReservationCredit::where('user_id', $user->id)
-        ->where('status', 'pending')
-        ->sum('credited_amount');
+    $creditSummary   = app(ReservationCreditService::class)->summary($user->id);
+    $availableCredit = $creditSummary["available"];
 
     return view('reservation.my_reservations', compact(
         'reservations',
         'activities',
         'seasons',
         'schedules',
-        'availableCredit'
+        'availableCredit',
+        'creditSummary'
     ));
 }
 
@@ -425,6 +431,7 @@ public function form($complexId)
             }
         }
 
+        $person?->ensureAgeCategory();
         $ageCategoryId = $person?->age_category_id;
         $genderCode    = $this->normalizeGender($person?->gender);
 
@@ -680,19 +687,15 @@ public function renewStore(Request $request, Reservation $reservation)
     /* =====================================================
        3️⃣ حساب السعر بنفس منطق store
     ===================================================== */
-    $totalPrice = $this->calculatePlanPrice(
+    $priceDetail = $this->calculatePlanPriceDetail(
         (float) $schedule->price,
         $season->type_season,
         $season->date_debut,
         $season->date_fin,
-        $renewSessionsPerWeek
+        $renewSlots
     );
+    $totalPrice = $priceDetail['price'];
 
-  $availableCredit = ReservationCredit::where('user_id', $user->id)
-    ->where('status', 'pending')
-    ->sum('credited_amount');
-
-    $finalPrice = max(0, $totalPrice - $availableCredit);
     /* =====================================================
        4️⃣ حساب عدد الأماكن (نفس store)
     ===================================================== */
@@ -728,6 +731,10 @@ if ($alreadyExists) {
     $newReservation = $reservation->replicate([
         'statut',
         'payment_status',
+        'credit_discount',
+        'credit_waived',
+        'credit_note',
+        'price_detail',
     ]);
 
     $newReservation->season_id      = $season->id;
@@ -736,11 +743,17 @@ if ($alreadyExists) {
     $newReservation->time_slots     = $reservation->time_slots;
     $newReservation->duration_hours = $reservation->duration_hours;
     $newReservation->qty_places     = $qtyPlaces;
-     $newReservation->total_price    = round($finalPrice);
+    $newReservation->total_price    = round($totalPrice, 2);
+    $newReservation->credit_discount = 0;
+    $newReservation->credit_waived   = 0;
+    $newReservation->credit_note     = null;
+    $newReservation->price_detail   = $priceDetail;
     $newReservation->statut          = 'en_attente';
     $newReservation->payment_status = 'pending';
 
     $newReservation->save();
+
+    $this->reserveCredits($newReservation, (float) $totalPrice);
 
     return redirect()
         ->route('reservation.my-reservations')
@@ -850,6 +863,7 @@ public function store(Request $request)
        4️⃣ التحقق من ملف المستخدم
     ===================================================== */
     if ($user->type === 'person') {
+        $person?->ensureAgeCategory();
         $ageCategoryId = $person?->age_category_id;
         $genderCode    = $this->normalizeGender($person?->gender);
     } else {
@@ -930,22 +944,19 @@ public function store(Request $request)
         return back()->with('error', '⚠ لا يوجد سعر محدد لهذا الجدول.');
     }
 
-    $totalPrice = $this->calculatePlanPrice(
+    $priceDetail = $this->calculatePlanPriceDetail(
         (float) $schedule->price,
         $season->type_season,
         $season->date_debut,
         $season->date_fin,
-        $sessionsPerWeek
+        $slots
     );
+    $totalPrice = $priceDetail['price'];
 
     /* =====================================================
        🔟 احتساب الرصيد التعويضي
     ===================================================== */
-    $availableCredit = ReservationCredit::where('user_id', $user->id)
-        ->where('status', 'pending')
-        ->sum('credited_amount');
-
-    $finalPrice = max(0, $totalPrice - $availableCredit);
+    // (الخصم يتم بعد إنشاء الحجز: reserveCredits)
 
     /* =====================================================
        1️⃣1️⃣ إنشاء الحجز
@@ -962,21 +973,13 @@ public function store(Request $request)
         'time_slots'          => $slots,
         'duration_hours'      => $sessionsPerWeek,
         'qty_places'          => $qtyPlaces,
-        'total_price'         => $finalPrice,
+        'total_price'         => $totalPrice,
+        'price_detail'        => $priceDetail,
         'statut'              => 'en_attente',
         'payment_status'      => 'pending',
     ]);
 
-    /*
-    if ($availableCredit > 0) {
-        ReservationCredit::where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->update([
-                'status' => 'used',
-                'used_in_reservation_id' => $newReservation->id,
-            ]);
-    }
-    */
+    $this->reserveCredits($newReservation, (float) $totalPrice);
 
     return redirect()
         ->route('reservation.my-reservations')
@@ -1206,56 +1209,115 @@ private function calculatePlanPrice(
     string $type,
     string $dateDebut,
     string $dateFin,
-    int $sessionsPerWeek = 1
+    array $slots = []
 ): float {
+    return $this->calculatePlanPriceDetail($basePrice, $type, $dateDebut, $dateFin, $slots)['price'];
+}
+
+/**
+ * Prix + détail des séances (source unique : le prix facturé ET l'affichage en dérivent).
+ * sessions_* / unit_price sont null pour les tarifs qui ne se calculent pas par séances.
+ */
+private function calculatePlanPriceDetail(
+    float $basePrice,
+    string $type,
+    string $dateDebut,
+    string $dateFin,
+    array $slots = []
+): array {
 
     $today     = Carbon::today();
-    $startDate = Carbon::parse($dateDebut);
-    $endDate   = Carbon::parse($dateFin);
+    $startDate = Carbon::parse($dateDebut)->startOfDay();
+    $endDate   = Carbon::parse($dateFin)->startOfDay();
+
+    $plain = fn (float $price) => [
+        'price' => $price, 'sessions_total' => null, 'sessions_counted' => null,
+        'unit_price' => null, 'sessions_value' => $price,
+    ];
 
     if ($today->greaterThan($endDate)) {
-        return 0;
+        return $plain(0);
     }
 
     $unit = strtolower($type);
 
     /* =====================================================
-       MOIS / SAISON — calcul par sessions
-       prix_par_session = basePrice / (sessions/semaine × semaines)
-       montant = prix_par_session × sessions_restantes
+       MOIS / SAISON — calcul par séances réelles
+       séances_total    = séances du calendrier entre date_debut et date_fin
+       séances_restantes = séances entre le jour de réservation (inclus) et la fin
+       prix_par_séance  = basePrice / séances_total
+       montant          = prix_par_séance × séances_restantes
     ===================================================== */
     if (in_array($unit, ['month', 'monthly', 'season'])) {
 
-        if ($today->lessThan($startDate)) {
-            return round($basePrice, 2);
+        if ($today->lessThanOrEqualTo($startDate)) {
+            // mois entier : toutes les séances du mois sont comptées
+            $sessionDaysFull = collect($slots)->pluck('day_number')
+                ->filter(fn ($d) => $d !== null && $d !== '')->map(fn ($d) => (int) $d)->all();
+            $totalFull = $this->countSessions($startDate, $endDate, $sessionDaysFull);
+
+            if ($totalFull <= 0) {
+                return $plain(round($basePrice, 2));
+            }
+
+            return [
+                'price' => round($basePrice, 2), 'sessions_total' => $totalFull, 'sessions_counted' => $totalFull,
+                'unit_price' => round($basePrice / $totalFull, 2), 'sessions_value' => round($basePrice, 2),
+            ];
         }
 
         $effectiveEnd = $endDate->copy();
         if (in_array($unit, ['month', 'monthly'])) {
-            $endOfMonth = $today->copy()->endOfMonth();
+            $endOfMonth = $today->copy()->endOfMonth()->startOfDay();
             if ($endOfMonth->lessThan($endDate)) {
                 $effectiveEnd = $endOfMonth;
             }
         }
 
-        $totalDays     = $startDate->diffInDays($endDate) + 1;
-        $totalWeeks    = (int) ceil($totalDays / 7);
-        $totalSessions = $sessionsPerWeek * $totalWeeks;
+        // Jours de séance (0 = dimanche … 6 = samedi, comme Carbon::dayOfWeek)
+        $sessionDays = collect($slots)
+            ->pluck('day_number')
+            ->filter(fn ($d) => $d !== null && $d !== '')
+            ->map(fn ($d) => (int) $d)
+            ->all();
+
+        $totalSessions     = $this->countSessions($startDate, $endDate, $sessionDays);
+        $remainingSessions = $this->countSessions($today, $effectiveEnd, $sessionDays);
 
         if ($totalSessions <= 0) {
-            return round($basePrice, 2);
+            return $plain(round($basePrice, 2));
         }
 
-        $remainingDays     = $today->diffInDays($effectiveEnd) + 1;
-        $remainingWeeks    = (int) ceil($remainingDays / 7);
-        $remainingSessions = $sessionsPerWeek * $remainingWeeks;
-
         $pricePerSession = $basePrice / $totalSessions;
+        $price = round($pricePerSession * $remainingSessions, 2);
 
-        return round($pricePerSession * $remainingSessions, 2);
+        return [
+            'price' => $price, 'sessions_total' => $totalSessions, 'sessions_counted' => $remainingSessions,
+            'unit_price' => round($pricePerSession, 2), 'sessions_value' => $price,
+        ];
     }
 
-    return round($basePrice, 2);
+    return $plain(round($basePrice, 2));
+}
+
+/**
+ * Nombre de séances entre deux dates (incluses) pour les jours de la semaine donnés.
+ * Sans jours définis, chaque jour compte comme une séance (prorata au jour).
+ */
+private function countSessions(Carbon $from, Carbon $to, array $sessionDays): int
+{
+    if ($from->greaterThan($to)) {
+        return 0;
+    }
+
+    $count = 0;
+    for ($day = $from->copy(); $day->lessThanOrEqualTo($to); $day->addDay()) {
+        if (empty($sessionDays) || in_array($day->dayOfWeek, $sessionDays, true)) {
+            $count++;
+        }
+    }
+
+    return $count;
 }
 
 
@@ -1632,6 +1694,16 @@ private function calculateProratedFirstMonth(Carbon $startDate, float $monthlyPr
             6 => 'السبت',
             default => 'غير معروف'
         };
+    }
+
+    /**
+     * Réserve les crédits compensatoires disponibles (plafonnés au prix) puis,
+     * la réservation reste en attente : elle sera réglée à l'action « payer »
+     * (PaymentController::initiate) si le net arrondi est 0 DA.
+     */
+    private function reserveCredits(Reservation $reservation, float $price): void
+    {
+        app(ReservationCreditService::class)->reserveFor($reservation, $price);
     }
 
     public function destroy(Reservation $reservation)

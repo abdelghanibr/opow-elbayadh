@@ -24,7 +24,8 @@ class Reservation extends Model
         'time_slots',       // JSON يحتوي الأيام والساعات
         'duration_hours',   // مجموع الساعات في الموسم
         'total_price',      // السعر الكلي
-        'status',  
+        'status',
+        'credit_discount', 'credit_waived', 'credit_note', 'price_detail',
         'pricing_plan_id'   , 'schedule_id' ,  'statut' ,'payment_status','qty_places' ,'end_date' ,'start_time' , 'end_time' ,          'person_id',
         'payment_id', 'assured_on',
     'assured_by'  // Pending / Confirmed / Rejected
@@ -39,9 +40,32 @@ public static function resolveTypeShedelaire($schedule, $season)
         : $schedule->type;
 }
 
+    protected static function booted(): void
+    {
+        // Réservation supprimée avant paiement : ses crédits réservés redeviennent disponibles
+        static::deleting(function (Reservation $reservation) {
+            app(\App\Services\ReservationCreditService::class)->release($reservation);
+        });
+    }
+
+    /** Prix initial du mois (avant remboursement) = reste + remise + petit reste abandonné. */
+    public function getInitialPriceAttribute(): float
+    {
+        return round((float) $this->total_price + (float) $this->credit_discount + (float) $this->credit_waived, 2);
+    }
+
+    /** Bouton « الحجز بالتعويض » : crédit réservé et reste < seuil (config/reservation.php). */
+    public function canPayByCredit(): bool
+    {
+        return $this->payment_status !== 'paid'
+            && (float) $this->credit_discount > 0
+            && \App\Services\ReservationCreditService::belowThreshold((float) $this->total_price);
+    }
+
     // لقراءة JSON تلقائيًا كمصفوفة
     protected $casts = [
         'time_slots' => 'array',
+        'price_detail' => 'array',
         'start_date' => 'date',
         'end_date' => 'date',
     ];

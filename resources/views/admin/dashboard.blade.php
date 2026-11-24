@@ -669,6 +669,8 @@ body{
 
             <a href="#" class="active">🏠 الرئيسية</a>
             <a href="{{ route('admins.index') }}">👑️ المسؤولون</a>
+            <a href="{{ route('admin.audit') }}">🕵️ سجل التتبع</a>
+            <a href="{{ route('admin.backups') }}">💾 النسخ الاحتياطية</a>
             
             <a href="{{ route('admin.dossiers.index') }}">🗂️ الملفات</a>
             <a href="{{ route('persons.index') }}">👥 المنخرطون</a>
@@ -735,6 +737,63 @@ body{
                     </div>
                 </div>
             </div>
+
+            @if(Auth::user()->type === 'admin' && empty(Auth::user()->complex_id))
+            @php
+                $auditRows = \App\Models\AuditLog::whereIn('event', ['updated','deleted','sql_delete'])
+                    ->orderByDesc('id')->limit(15)->get();
+                $auditLabels = ['login'=>['دخول','success'],'login_failed'=>['فشل دخول','warning'],'logout'=>['خروج','secondary'],
+                                'updated'=>['تعديل','primary'],'deleted'=>['حذف','danger'],'sql_delete'=>['حذف جماعي','danger']];
+            @endphp
+            <div class="panel-card pc-collapsed" style="margin-bottom:20px">
+                <div class="panel-head">
+                    <h5 class="panel-title">🕵️ سجل تعديل وحذف المسؤولين</h5>
+                    <span>
+                        <button type="button" id="auditToggle" class="panel-badge" onclick="auditToggle()" style="border:0;cursor:pointer">▼ إظهار</button>
+                        <button type="button" class="panel-badge" onclick="auditFilter('')" style="border:0;cursor:pointer">الكل</button>
+                        <button type="button" class="panel-badge" onclick="auditFilter('updated')" style="border:0;cursor:pointer">تعديل</button>
+                        <button type="button" class="panel-badge" onclick="auditFilter('deleted')" style="border:0;cursor:pointer">حذف</button>
+                        <a href="{{ route('admin.audit') }}" class="panel-badge" style="text-decoration:none">عرض الكل ←</a>
+                    </span>
+                </div>
+                <div id="auditBox" style="display:none;overflow:auto;max-height:240px">
+                <table class="table table-sm align-middle mb-0" style="font-size:.85rem">
+                    <thead><tr><th>التاريخ</th><th>المستخدم</th><th>العملية</th><th>الجدول</th><th>السجل</th><th>IP</th></tr></thead>
+                    <tbody id="auditBody">
+                    @forelse($auditRows as $l)
+                        @php [$lab,$cls] = $auditLabels[$l->event] ?? [$l->event,'secondary']; @endphp
+                        <tr data-ev="{{ in_array($l->event,['login_failed','logout']) ? 'login' : ($l->event==='sql_delete' ? 'deleted' : $l->event) }}">
+                            <td style="white-space:nowrap">{{ $l->created_at?->format('d/m/Y H:i') }}</td>
+                            <td>{{ $l->user_name ?? ($l->new_values['identifiant'] ?? '—') }}</td>
+                            <td><span class="badge bg-{{ $cls }}">{{ $lab }}</span></td>
+                            <td>{{ $l->auditable_type ? class_basename($l->auditable_type) : '' }}</td>
+                            <td>{{ $l->auditable_id }}</td>
+                            <td dir="ltr" class="text-muted">{{ $l->ip }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="text-center text-muted py-3">لا توجد سجلات بعد</td></tr>
+                    @endforelse
+                    </tbody>
+                </table>
+                </div>
+            </div>
+            <script>
+            function auditToggle(){
+                var b=document.getElementById('auditBox'), t=document.getElementById('auditToggle');
+                var show = b.style.display==='none';
+                b.style.display = show ? '' : 'none';
+                b.closest('.panel-card').classList.toggle('pc-collapsed', !show);
+                t.textContent = show ? '▲ إخفاء' : '▼ إظهار';
+            }
+            function auditFilter(ev){
+                var b=document.getElementById('auditBox');
+                if(b.style.display==='none'){ auditToggle(); }
+                document.querySelectorAll('#auditBody tr[data-ev]').forEach(function(r){
+                    r.style.display = (!ev || r.dataset.ev === ev) ? '' : 'none';
+                });
+            }
+            </script>
+            @endif
 
             <div class="content-grid">
 
@@ -1034,6 +1093,15 @@ body{
         <p class="dash-desc">حذف الحسابات التي لم تقدم أي ملف — فردي أو جماعي.</p>
         <div class="count-box">{{ $noDossierAccountsCount ?? 0 }}</div>
     </a>
+
+    @if(\App\Services\ImpersonationService::isSuperAdmin(auth()->user()))
+    <a href="{{ route('admin.messages.index') }}" class="dash-card">
+        <div class="dash-icon">📩</div>
+        <h6>رسائل إلى الحسابات</h6>
+        <p class="dash-desc">إرسال إشعار ورسالة من الإدارة إلى حساب أو عدة حسابات.</p>
+        <div class="count-box">إرسال</div>
+    </a>
+    @endif
 
     </div>
             </div>
@@ -1345,6 +1413,63 @@ if (genderCtx) {
     }
 }
 
+});
+</script>
+
+<style>
+/* ===== Cartes : style pro, 2 colonnes de même taille, police réduite ===== */
+.panel-card{border-radius:14px;padding:14px 16px;box-shadow:0 2px 10px rgba(15,23,42,.06);border:1px solid #e5eaf2;font-size:13px}
+.panel-head{margin-bottom:12px}
+.panel-title{font-size:14px;font-weight:800}
+.panel-badge{font-size:11px;padding:4px 10px}
+.activity-row{padding:9px 0}
+.activity-text{font-size:13px;font-weight:700}
+.activity-badge{font-size:11px;padding:4px 10px;min-width:48px}
+.dossier-stats{font-size:12.5px}
+.table{font-size:12.5px !important}
+.menu-section > .menu-title{font-size:15px}
+.content-grid,.circles-row{gap:16px;margin-top:16px}
+.menu-section .content-grid{margin-top:12px}
+.age-legend-item{font-size:12px}
+@media(min-width:1101px){
+  .content-grid,.circles-row{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+  .chart-card,.circles-row .panel-card,.content-grid > .panel-card{min-height:300px}
+  .chart-wrapper{height:230px}
+  .age-chart-layout{grid-template-columns:170px 1fr;gap:14px}
+  .age-chart-wrapper,.circle-wrapper{width:170px;height:170px}
+}
+.panel-card.pc-collapsed{min-height:0 !important;height:auto !important;align-self:start;padding-top:14px;padding-bottom:14px}
+.panel-card.pc-collapsed > .panel-head{margin-bottom:0}
+</style>
+<script>
+/* Cartes du tableau de bord : masquées par défaut, bouton إظهار / إخفاء */
+window.addEventListener('load', function () {
+    document.querySelectorAll('.panel-card').forEach(function (card) {
+        if (card.querySelector('#auditBox')) return;          // la carte du journal a son propre bouton
+        var head = card.querySelector(':scope > .panel-head');
+        if (!head) return;
+        var body = document.createElement('div');
+        body.className = 'pc-body';
+        body.style.display = 'none';
+        card.classList.add('pc-collapsed');
+        while (head.nextSibling) body.appendChild(head.nextSibling);
+        card.appendChild(body);
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'panel-badge';
+        btn.style.cssText = 'border:0;cursor:pointer;margin-inline-start:8px';
+        btn.textContent = '▼ إظهار';
+        btn.onclick = function () {
+            var show = body.style.display === 'none';
+            body.style.display = show ? '' : 'none';
+            card.classList.toggle('pc-collapsed', !show);
+            btn.textContent = show ? '▲ إخفاء' : '▼ إظهار';
+            if (show && window.Chart && Chart.instances) {
+                Object.values(Chart.instances).forEach(function (c) { try { c.resize(); } catch (e) {} });
+            }
+        };
+        head.appendChild(btn);
+    });
 });
 </script>
 

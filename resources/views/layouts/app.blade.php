@@ -355,7 +355,13 @@
 
             <a href="{{ $profileRoute }}" class="btn btn-outline-main btn-nav">
                 <i class="fa-solid fa-user"></i> الحساب الشخصي
+                @php $unreadAdminMsgs = \App\Models\UserMessage::unreadCount($user->id); @endphp
+                @if($unreadAdminMsgs > 0)<span class="badge bg-danger rounded-pill" title="رسائل جديدة من الإدارة">{{ $unreadAdminMsgs }}</span>@endif
             </a>
+
+            @if(\App\Services\ImpersonationService::isSuperAdmin($user) && !\App\Services\ImpersonationService::isImpersonating())
+                @include('admin.partials.impersonate-switcher')
+            @endif
 
             {{-- User chip --}}
             <div class="user-chip">

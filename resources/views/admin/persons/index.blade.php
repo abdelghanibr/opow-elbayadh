@@ -233,6 +233,7 @@
     </td>
     <!-- Delete Action -->
     <td>
+        @include('admin.partials.impersonate-button', ['userId' => $p->user_id])
         @if(($p->user->type ?? 'person') === 'person')
             <form action="{{ route('persons.destroy', $p->id) }}" method="POST"
                     onsubmit="return confirm('هل تريد حذف هذا الشخص؟')">

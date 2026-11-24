@@ -253,6 +253,11 @@
       class="badge bg-{{ $r->payment_status==='paid'?'success':'secondary' }}">
     {{ $r->payment_status==='paid'?'مدفوع':'غير مدفوع' }}
 </span>
+@if($r->credit_note)
+<div class="small text-success">{{ $r->credit_note }}</div>
+@elseif((float) $r->credit_discount > 0)
+<div class="small text-muted">خصم التعويض : {{ number_format((float) $r->credit_discount, 2, '.', '') }} دج</div>
+@endif
 
 @if(in_array(auth()->user()->type, ['admin', 'financier']))
 

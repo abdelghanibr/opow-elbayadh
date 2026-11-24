@@ -413,8 +413,8 @@
         border: none;
         border-radius: 4px;
     }
-    .fc-timegrid-slot { height: 40px !important; }
-    @media (max-width: 768px) { .fc-timegrid-slot { height: 35px !important; } }
+    .fc-timegrid-slot { height: 28px !important; }
+    @media (max-width: 768px) { .fc-timegrid-slot { height: 24px !important; } }
 </style>
 @endpush
 
@@ -488,7 +488,8 @@ document.addEventListener('DOMContentLoaded', function () {
         eventOverlap: false,
         slotMinTime: '05:00:00',
         slotMaxTime: '23:00:00',
-        slotDuration: '01:00:00',
+        slotDuration: '00:30:00',
+        slotLabelInterval: '01:00:00',
         height: 'auto',
         expandRows: true,
         titleFormat: { weekday: 'long', day: 'numeric', month: 'long' },

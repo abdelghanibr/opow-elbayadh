@@ -147,6 +147,8 @@
             </div>
         </div>
 
+        @include('messages.partials.inbox-card')
+
         <div class="col-md-4">
             <div class="dash-card">
                 <h5>⭐ النشاطات المتاحة</h5>

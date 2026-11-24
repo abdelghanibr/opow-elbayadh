@@ -439,6 +439,12 @@ Route::get('/persons/by-owner/{id}', [PersonController::class, 'byOwner']
 
 Route::middleware(['auth','admin'])->group(function () {
 
+    // Traçabilité des utilisateurs + sauvegardes de la base (admin général)
+    Route::get('/admin/audit', [\App\Http\Controllers\Admin\AuditController::class, 'index'])->name('admin.audit');
+    Route::get('/admin/backups', [\App\Http\Controllers\Admin\AuditController::class, 'backups'])->name('admin.backups');
+    Route::post('/admin/backups/run', [\App\Http\Controllers\Admin\AuditController::class, 'backupRun'])->name('admin.backups.run');
+    Route::get('/admin/backups/{name}', [\App\Http\Controllers\Admin\AuditController::class, 'backupDownload'])->name('admin.backups.download');
+
 
 
 /*
@@ -884,6 +890,9 @@ Route::post('/activities/select', function () {
     Route::get('/payments/{reservation}/pay', [PaymentController::class, 'pay'])
          ->name('payments.pay');
 
+    Route::post('/payments/{reservation}/credit', [PaymentController::class, 'payByCredit'])
+         ->name('payments.credit');
+
 
     Route::get('/reservations/payment/{id}', [PaymentController::class, 'paymentPage'])
         ->name('reservation.payment');
@@ -897,3 +906,29 @@ Route::post('/activities/select', function () {
 
 });
 
+
+/*
+|--------------------------------------------------------------------------
+| Bascule du super admin vers un autre compte (et retour)
+|--------------------------------------------------------------------------
+| Les contrôles de droits sont faits côté serveur (ImpersonationService).
+*/
+Route::middleware(['auth'])->group(function () {
+    Route::get('/admin/impersonate/users', [\App\Http\Controllers\Admin\ImpersonationController::class, 'users'])->name('impersonate.users');
+    Route::post('/admin/impersonate/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])->name('impersonate.stop');
+    Route::post('/admin/impersonate/{user}', [\App\Http\Controllers\Admin\ImpersonationController::class, 'start'])->whereNumber('user')->name('impersonate.start');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Messages de l'administration (notifications du compte)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->group(function () {
+    // Envoi par le super admin (tuile du tableau de bord)
+    Route::get('/admin/messages', [\App\Http\Controllers\Admin\MessageController::class, 'index'])->name('admin.messages.index');
+    Route::post('/admin/messages', [\App\Http\Controllers\Admin\MessageController::class, 'store'])->name('admin.messages.store');
+    Route::delete('/admin/messages/{message}', [\App\Http\Controllers\Admin\MessageController::class, 'destroy'])->whereNumber('message')->name('admin.messages.destroy');
+    Route::post('/messages/read-all', [\App\Http\Controllers\UserMessageController::class, 'readAll'])->name('messages.read-all');
+    Route::post('/messages/{message}/read', [\App\Http\Controllers\UserMessageController::class, 'read'])->whereNumber('message')->name('messages.read');
+});

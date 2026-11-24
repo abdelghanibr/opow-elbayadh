@@ -369,18 +369,8 @@
         </div>
     @endif
 
-    @if(isset($availableCredit) && $availableCredit > 0)
-        <div class="alert alert-info d-flex justify-content-between align-items-center gap-2 flex-wrap" dir="rtl">
-            <div>
-                <strong>لديك رصيد تعويضي متاح:</strong>
-                {{ number_format($availableCredit, 2, ',', ' ') }} دج
-            </div>
-
-            <span class="badge bg-primary">
-                سيتم خصمه من الحجز القادم
-            </span>
-        </div>
-    @endif
+    @include('messages.partials.inbox')
+    @include('reservation.partials.credit-summary')
 
     @if($reservations->count())
 
@@ -399,6 +389,7 @@
                             <th>الموسم</th>
                             <th>من</th>
                             <th>إلى</th>
+                            <th>تاريخ الطلب</th>
                             <th>الساعات</th>
                             <th>الجدول</th>
                             <th>السعر</th>
@@ -481,6 +472,8 @@
                                     @endif
                                 </td>
 
+                                <td dir="ltr">{{ $r->created_at?->format('Y-m-d H:i') ?? '—' }}</td>
+
                                 <td>{{ $r->duration_hours ?? '—' }}</td>
 
                                 <td>
@@ -494,12 +487,15 @@
                                     @endforelse
                                 </td>
 
-                                <td>{{ number_format($r->total_price ?? 0) }} دج</td>
+                                <td>@include('reservation.partials.price-breakdown', ['r' => $r])</td>
 
                                 <td>
                                     <span class="badge {{ $payment['class'] }}">
                                         {{ $payment['label'] }}
                                     </span>
+                                    @if($r->credit_note)
+                                        <div class="small text-success mt-1">{{ $r->credit_note }}</div>
+                                    @endif
                                 </td>
 
                                 <td>
@@ -538,10 +534,20 @@
                                             </button>
 
                                         @else
-                                            <a href="{{ route('payments.pay', $r->id) }}"
-                                               class="btn btn-sm btn-success">
-                                                💳 الدفع
-                                            </a>
+                                            @if($r->canPayByCredit())
+                                                <form action="{{ route('payments.credit', $r->id) }}" method="POST"
+                                                      onsubmit="return confirm('الحجز بالتعويض؟');">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-success">
+                                                        💳 الحجز بالتعويض
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <a href="{{ route('payments.pay', $r->id) }}"
+                                                   class="btn btn-sm btn-success">
+                                                    💳 الدفع
+                                                </a>
+                                            @endif
 
                                             <form action="{{ route('reservations.destroy', $r->id) }}"
                                                   method="POST"
@@ -663,6 +669,13 @@
                         @endif
 
                         <div class="mobile-row">
+                            <div class="mobile-label">🕒 تاريخ الطلب</div>
+                            <div class="mobile-value" dir="ltr">
+                                {{ $r->created_at?->format('Y-m-d H:i') ?? '—' }}
+                            </div>
+                        </div>
+
+                        <div class="mobile-row">
                             <div class="mobile-label">⏱️ الساعات</div>
                             <div class="mobile-value">
                                 {{ $r->duration_hours ?? '—' }}
@@ -672,7 +685,7 @@
                         <div class="mobile-row">
                             <div class="mobile-label">💰 السعر</div>
                             <div class="mobile-value">
-                                {{ number_format($r->total_price ?? 0) }} دج
+                                @include('reservation.partials.price-breakdown', ['r' => $r])
                             </div>
                         </div>
 
@@ -682,6 +695,9 @@
                                 <span class="badge {{ $payment['class'] }}">
                                     {{ $payment['label'] }}
                                 </span>
+                                @if($r->credit_note)
+                                    <div class="small text-success mt-1">{{ $r->credit_note }}</div>
+                                @endif
                             </div>
                         </div>
 
@@ -735,10 +751,20 @@
                             @endif
                         @else
                             <div class="mobile-actions">
-                                <a href="{{ route('payments.pay', $r->id) }}"
-                                   class="btn btn-success btn-sm">
-                                    💳 الدفع
-                                </a>
+                                @if($r->canPayByCredit())
+                                    <form action="{{ route('payments.credit', $r->id) }}" method="POST"
+                                          onsubmit="return confirm('الحجز بالتعويض؟');">
+                                        @csrf
+                                        <button type="submit" class="btn btn-success btn-sm w-100">
+                                            💳 الحجز بالتعويض
+                                        </button>
+                                    </form>
+                                @else
+                                    <a href="{{ route('payments.pay', $r->id) }}"
+                                       class="btn btn-success btn-sm">
+                                        💳 الدفع
+                                    </a>
+                                @endif
 
                                 <form action="{{ route('reservations.destroy', $r->id) }}"
                                       method="POST"

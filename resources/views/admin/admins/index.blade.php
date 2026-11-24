@@ -58,6 +58,8 @@
                                 <a href="{{ route('admins.edit', $a->id) }}"
                                    class="btn btn-sm btn-warning btn-action">✏ تعديل</a>
 
+                                @include('admin.partials.impersonate-button', ['userId' => $a->id])
+
                                 <form action="{{ route('admins.delete', $a->id) }}"
                                       method="POST"
                                       class="d-inline">

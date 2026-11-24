@@ -84,6 +84,11 @@
                     </div>
                 </div>
 
+                {{-- DÉTAIL DU PRIX (séances + remboursement) --}}
+                <div class="border rounded p-2 mb-3 bg-light">
+                    @include('reservation.partials.price-breakdown', ['r' => $reservation])
+                </div>
+
                 {{-- STATUS --}}
                 <p>
                     <strong>حالة الدفع:</strong>

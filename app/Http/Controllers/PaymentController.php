@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Models\Person;
 use App\Models\ReservationCredit;
+use App\Services\ReservationCreditService;
 use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
@@ -53,6 +54,23 @@ public function initiate(Request $request)
     }
 
     $reservation = Reservation::findOrFail($request->reservation_id);
+    // Un utilisateur ne peut payer que sa propre réservation
+    if ((int) $reservation->user_id !== (int) Auth::id()) {
+        abort(403, 'غير مصرح لك بالدفع لهذا الحجز');
+    }
+
+    // Déjà payée (double clic) : aucun second paiement, aucun autre crédit consommé
+    if ($reservation->payment_status === 'paid') {
+        return redirect()->route('reservation.my-reservations')
+            ->with('info', 'ℹ️ هذا الحجز مدفوع بالفعل');
+    }
+
+    // Net à payer = 0 DA grâce aux crédits réservés : pas de passerelle
+    if (app(ReservationCreditService::class)->payWithCredits($reservation)) {
+        return redirect()->route('reservation.my-reservations')
+            ->with('success', '✔ تم الدفع بالتعويض');
+    }
+
     $amount = (int) round($reservation->total_price);
 
     $payment = Payment::create([
@@ -317,6 +335,29 @@ public function sendReceiptEmail(Request $request, $orderId)
 
     return back()->with('success', 'تم إرسال الوصل إلى البريد: '.$email);
 }
+/**
+ * Bouton « الحجز بالتعويض » : règle la réservation par remboursement (sans passerelle)
+ * si des crédits sont réservés et que le reste est < seuil (config/reservation.php).
+ */
+public function payByCredit(Reservation $reservation)
+{
+    if ((int) $reservation->user_id !== (int) Auth::id()) {
+        abort(403, 'غير مصرح لك بالدفع لهذا الحجز');
+    }
+
+    if ($reservation->payment_status === 'paid') {
+        return redirect()->route('reservation.my-reservations')
+            ->with('info', 'ℹ️ هذا الحجز مدفوع بالفعل');
+    }
+
+    if (app(ReservationCreditService::class)->payWithCredits($reservation)) {
+        return redirect()->route('reservation.my-reservations')
+            ->with('success', '✔ تم الحجز بالتعويض');
+    }
+
+    return redirect()->route('reservation.my-reservations')
+        ->with('error', '⚠ لا يمكن الحجز بالتعويض: المبلغ المتبقي يتجاوز الحد المسموح.');
+}
 
 public function pay(Reservation $reservation)
     {
@@ -335,32 +376,9 @@ public function pay(Reservation $reservation)
 
  private function applyPendingCreditsAfterSuccessfulPayment(Reservation $reservation): void
 {
-    DB::transaction(function () use ($reservation) {
-
-        $alreadyUsedForThisReservation = ReservationCredit::where('used_in_reservation_id', $reservation->id)
-            ->where('status', 'used')
-            ->exists();
-
-        if ($alreadyUsedForThisReservation) {
-            return;
-        }
-
-        $availableCredit = ReservationCredit::where('user_id', $reservation->user_id)
-            ->where('status', 'pending')
-            ->sum('credited_amount');
-
-        if ($availableCredit <= 0) {
-            return;
-        }
-
-        ReservationCredit::where('user_id', $reservation->user_id)
-            ->where('status', 'pending')
-            ->update([
-                'status' => 'used',
-                'used_in_reservation_id' => $reservation->id,
-                'updated_at' => now(),
-            ]);
-    });
+    // Seuls les crédits réservés pour CETTE réservation passent à « used »
+    // (avant : tous les crédits pending de l'utilisateur étaient consommés).
+    app(ReservationCreditService::class)->consume($reservation);
 }
 
 }

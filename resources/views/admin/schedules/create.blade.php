@@ -311,7 +311,7 @@
                             <strong>كيفية اختيار الأوقات:</strong><br>
                             المنطقة الملوّنة = مواعيد مشغولة في المنشأة (كل نشاط بلونه الخاص)<br>
                             الأوقات الزرقاء = اختياراتك الحالية<br>
-                            <em>انقر على الساعة لبدء الاختيار، ثم اسحب لتحديد المدة (ساعة واحدة)</em>
+                            <em>انقر على الساعة لبدء الاختيار، ثم اسحب لتحديد المدة (كل خانة = 30 دقيقة)</em>
                         </div>
 
                         <div id="conflictNotice" class="alert rounded-4 p-3 text-center mt-3 shadow-sm d-none"
@@ -411,8 +411,8 @@
         border: none;
         border-radius: 4px;
     }
-    .fc-timegrid-slot { height: 40px !important; }
-    @media (max-width: 768px) { .fc-timegrid-slot { height: 35px !important; } }
+    .fc-timegrid-slot { height: 28px !important; }
+    @media (max-width: 768px) { .fc-timegrid-slot { height: 24px !important; } }
 </style>
 @endpush
 
@@ -510,7 +510,8 @@ document.addEventListener('DOMContentLoaded', function () {
         selectOverlap: true,
         slotMinTime: "05:00:00",
         slotMaxTime: "23:00:00",
-        slotDuration: "01:00:00",
+        slotDuration: "00:30:00",
+        slotLabelInterval: "01:00:00",
         allDaySlot: false,
         expandRows: false,
         height: "auto",
